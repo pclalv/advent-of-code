@@ -61,3 +61,128 @@
                                      corner-pairs))
         distance-from-corner (min (- upper num) (- num lower))]
     (- grid-dim 1 distance-from-corner)))
+
+;; --- Part Two ---
+;; As a stress test on the system, the programs here clear the grid
+;; and then store the value 1 in square 1. Then, in the same
+;; allocation order as shown above, they store the sum of the values
+;; in all adjacent squares, including diagonals.
+
+;; So, the first few squares' values are chosen as follows:
+
+;; Square 1 starts with the value 1.
+
+;; Square 2 has only one adjacent filled square (with value 1), so it
+;; also stores 1.
+
+;; Square 3 has both of the above squares as neighbors and stores the
+;; sum of their values, 2.
+
+;; Square 4 has all three of the aforementioned squares as neighbors
+;; and stores the sum of their values, 4.
+
+;; Square 5 only has the first and fourth squares as neighbors, so it
+;; gets the value 5.
+
+;; Once a square is written, its value does not change. Therefore, the
+;; first few squares would receive the following values:
+
+;; 147  142  133  122   59
+;; 304    5    4    2   57
+;; 330   10    1    1   54
+;; 351   11   23   25   26
+;; 362  747  806--->   ...
+
+;; What is the first value written that is larger than your puzzle
+;; input?
+
+[1 1 2 4 5 10 11]
+[0 1 2 3 3  3  2]
+
+[[1]]
+
+[[1 1]]
+
+[[, ,]
+ [1 1]]
+
+[[, 2]
+ [1 1]]
+
+[[4 2]
+ [1 1]]
+
+[[5 4 2]
+ [1 1]]
+
+[[5 4 2]
+ [, 1 1]
+ [, , ,]]
+
+[[ 5 4  2]
+ [10 1  1]
+ [,  ,  ,]]
+
+[[ 5 4  2]
+ [10 1  1]
+ [11 ,  ,]]
+
+[[ 5  4  2]
+ [10  1  1]
+ [11 23  ,]]
+
+[[ 5  4  2]
+ [10  1  1]
+ [11 23 25]]
+
+(defn expand-left-and-up
+  "start from bottom right and work towards top left by going up and then left"
+  [grid]
+  (let [grid-size (max (count grid) (count (first grid)))
+        right-side (map last (reverse grid))
+        right-side-adjacent-groups (list (take 2 right-side)
+                                         (apply identity (partition 3 1 right-side))
+                                         (take-last 2 right-side))]
+    ;; how do i use the last result within my map without rebinding?
+    ;; perhaps i'm asking the wrong question?
+    (let [grid-partially-updated (reverse (map (fn [grid-row adjacents]
+                                                 (conj grid-row (reduce + adjacents)))
+                                               (reverse grid)
+                                               right-side-adjacent-groups))
+          corrections-unflattened (map-indexed (fn [idx el]
+                                                 (let [zeroes (+ 1 idx)
+                                                       nonzeroes (- grid-size zeroes)]
+                                                   (into [] (concat (repeat zeroes 0)
+                                                                    (repeat nonzeroes el)))))
+                                               (reverse (drop 1 (map last grid-partially-updated))))
+          corrections (reverse (into [] (apply map + corrections-unflattened)))]
+      (println grid-partially-updated)
+      (println corrections)
+      (map (fn [row correction]
+             (conj (into [] (butlast row))
+                   (+ correction (last row))))
+           grid-partially-updated
+           corrections))))
+
+(into [] (apply map vector (expand-left-and-up [[ 5  4  2]
+                                                [10  1  1]
+                                                [11 23 25]])))
+
+[[ 5 10 11]
+ [ 4  1 23]
+ [ 2  1 25]
+ [57 54 26]]
+
+;; this works!!
+(let [grid [[ 5 10 11]
+            [ 4  1 23]
+            [ 2  1 25]
+            [57 54 26]]
+      grid-size (max (count grid) (count (first grid)))
+      right-side (map last (reverse grid))
+      all-but-first (conj (reverse (partition 3 1 right-side))
+                          (apply list (take-last 2 right-side)))
+      right-side-adjacent-groups (conj (reverse all-but-first)
+                                       (take 2 right-side))]
+  (println right-side)
+  (println right-side-adjacent-groups))
