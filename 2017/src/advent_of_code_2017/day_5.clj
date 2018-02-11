@@ -38,3 +38,20 @@
 
 ;; How many steps does it take to reach the exit?
 
+(defn compute
+  ([instructions]
+   (compute instructions 0 0))
+  ([instructions position steps]
+   (if (or (<= (count instructions) position)
+           (> 0 position))
+     steps
+     (let [instruction (nth instructions position)]
+       (recur (assoc instructions position (inc instruction))
+              (+ position instruction)
+              (inc steps))))))
+
+(defn compute-file [file]
+  (with-open [rdr (clojure.java.io/reader file)]
+    (let [instructions-raw (line-seq rdr)
+          length (count instructions-raw)]
+      (compute (vec (map #(Integer/parseInt %) instructions-raw))))))
