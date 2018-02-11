@@ -1,4 +1,4 @@
-(ns advent-of-code-2017.day-4)
+(ns advent-of-code-2017.day-5)
 
 ;; --- Day 5: A Maze of Twisty Trampolines, All Alike ---
 ;; An urgent interrupt arrives from the CPU: it's trapped in a maze of
