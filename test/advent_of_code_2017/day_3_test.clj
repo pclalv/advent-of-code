@@ -37,3 +37,6 @@
             [26 54 57] (rotate-clockwise [[ 5  4  2  5]
                                           [10  1  1 54]
                                           [11 23 25 26]])]))))
+(deftest part2-soln-test
+  (testing "truth"
+    (is (= 363010 (part2-soln)))))

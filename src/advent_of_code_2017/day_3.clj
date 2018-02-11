@@ -185,10 +185,11 @@
             rotated
             (reverse matrix))))
 
-(loop [matrix [[ 5  4  2]
-               [10  1  1]
-               [11 23 25]]]
-  (let [next-matrix (rotate-clockwise (vec (expand-left-and-up matrix)))]
-    (if-let [greater-than-input (first (filter #(< input %) (last next-matrix)))]
-      greater-than-input
-      (recur next-matrix))))
+(defn part2-soln []
+  (loop [matrix [[ 5  4  2]
+                 [10  1  1]
+                 [11 23 25]]]
+    (let [next-matrix (rotate-clockwise (vec (expand-left-and-up matrix)))]
+      (if-let [greater-than-input (first (filter #(< input %) (last next-matrix)))]
+        greater-than-input
+        (recur next-matrix)))))
