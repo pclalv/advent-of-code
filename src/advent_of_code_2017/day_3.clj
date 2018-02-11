@@ -1,6 +1,7 @@
 (ns advent-of-code-2017.day-3)
 
-(require '[clojure.math.numeric-tower :as math])
+(require '[clojure.math.numeric-tower :as math]
+         '[clojure.core.matrix :as matrix])
 
 ;; --- Day 3: Spiral Memory ---
 ;; You come across an experimental new kind of memory stored on an infinite two-dimensional grid.
@@ -140,11 +141,13 @@
   [grid]
   (let [grid-size (max (count grid) (count (first grid)))
         right-side (map last (reverse grid))
-        right-side-adjacent-groups (list (take 2 right-side)
-                                         (apply identity (partition 3 1 right-side))
-                                         (take-last 2 right-side))]
-    ;; how do i use the last result within my map without rebinding?
-    ;; perhaps i'm asking the wrong question?
+        first-right-side-adjacent-group (take 2 right-side)
+        last-right-side-adjacent-group (take-last 2 right-side)
+        middle-right-side-adjacent-groups (partition 3 1 right-side)
+        all-but-first-right-side-adjacent-groups (conj (reverse middle-right-side-adjacent-groups)
+                                                       last-right-side-adjacent-group)
+        right-side-adjacent-groups (conj (reverse all-but-first-right-side-adjacent-groups)
+                                         first-right-side-adjacent-group)]
     (let [grid-partially-updated (reverse (map (fn [grid-row adjacents]
                                                  (conj grid-row (reduce + adjacents)))
                                                (reverse grid)
@@ -156,33 +159,37 @@
                                                                     (repeat nonzeroes el)))))
                                                (reverse (drop 1 (map last grid-partially-updated))))
           corrections (reverse (into [] (apply map + corrections-unflattened)))]
-      (println grid-partially-updated)
-      (println corrections)
       (map (fn [row correction]
              (conj (into [] (butlast row))
                    (+ correction (last row))))
            grid-partially-updated
            corrections))))
 
-(into [] (apply map vector (expand-left-and-up [[ 5  4  2]
-                                                [10  1  1]
-                                                [11 23 25]])))
+[[5   4  2 57]
+ [10  1  1 54]
+ [11 23 25 26]]
 
-[[ 5 10 11]
- [ 4  1 23]
- [ 2  1 25]
- [57 54 26]]
+[[11 10  5]
+ [23  1  4]
+ [25  1  2]
+ [26 54 57]]
 
-;; this works!!
-(let [grid [[ 5 10 11]
-            [ 4  1 23]
-            [ 2  1 25]
-            [57 54 26]]
-      grid-size (max (count grid) (count (first grid)))
-      right-side (map last (reverse grid))
-      all-but-first (conj (reverse (partition 3 1 right-side))
-                          (apply list (take-last 2 right-side)))
-      right-side-adjacent-groups (conj (reverse all-but-first)
-                                       (take 2 right-side))]
-  (println right-side)
-  (println right-side-adjacent-groups))
+(defn row-to-column [rotated row]
+  (vec (map (fn [rotated-row el]
+              (conj rotated-row el))
+            rotated
+            row)))
+
+(defn rotate-clockwise [matrix]
+  (let [rotated (repeat (count (first matrix )) [])]
+    (reduce row-to-column
+            rotated
+            (reverse matrix))))
+
+(loop [matrix [[ 5  4  2]
+               [10  1  1]
+               [11 23 25]]]
+  (let [next-matrix (rotate-clockwise (vec (expand-left-and-up matrix)))]
+    (if-let [greater-than-input (first (filter #(< input %) (last next-matrix)))]
+      greater-than-input
+      (recur next-matrix))))
