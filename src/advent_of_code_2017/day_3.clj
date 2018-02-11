@@ -1,7 +1,6 @@
 (ns advent-of-code-2017.day-3)
 
-(require '[clojure.math.numeric-tower :as math]
-         '[clojure.core.matrix :as matrix])
+(require '[clojure.math.numeric-tower :as math])
 
 ;; --- Day 3: Spiral Memory ---
 ;; You come across an experimental new kind of memory stored on an infinite two-dimensional grid.
