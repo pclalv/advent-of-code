@@ -4,4 +4,7 @@
 
 (deftest compute-file-test
   (testing "output"
-    (is (= 5 (compute-file "resources/day-5/input-test")))))
+    (is (= 5 (compute-file "resources/day-5/input-test")))
+    (is (= 351282 (compute-file "resources/day-5/input")))
+    (is (= 10 (compute-file "resources/day-5/input-test" stranger-instruction-modifier)))
+    (is (= 24568703 (compute-file "resources/day-5/input" stranger-instruction-modifier)))))

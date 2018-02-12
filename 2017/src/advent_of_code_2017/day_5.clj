@@ -39,19 +39,41 @@
 ;; How many steps does it take to reach the exit?
 
 (defn compute
-  ([instructions]
-   (compute instructions 0 0))
-  ([instructions position steps]
+  ([instructions instruction-modifier]
+   (compute instructions 0 0 instruction-modifier))
+  ([instructions position steps instruction-modifier]
    (if (or (<= (count instructions) position)
            (> 0 position))
      steps
      (let [instruction (nth instructions position)]
-       (recur (assoc instructions position (inc instruction))
+       (recur (assoc instructions position (instruction-modifier instruction))
               (+ position instruction)
-              (inc steps))))))
+              (inc steps)
+              instruction-modifier)))))
 
-(defn compute-file [file]
-  (with-open [rdr (clojure.java.io/reader file)]
-    (let [instructions-raw (line-seq rdr)
-          length (count instructions-raw)]
-      (compute (vec (map #(Integer/parseInt %) instructions-raw))))))
+(defn compute-file
+  ([file]
+   (compute-file file inc))
+  ([file instruction-modifier]
+   (with-open [rdr (clojure.java.io/reader file)]
+     (let [instructions-raw (line-seq rdr)
+           length (count instructions-raw)]
+       (compute (vec (map #(Integer/parseInt %) instructions-raw))
+                instruction-modifier)))))
+
+;; --- Part Two ---
+;; Now, the jumps are even stranger: after each jump, if the offset
+;; was three or more, instead decrease it by 1. Otherwise, increase it
+;; by 1 as before.
+
+;; Using this rule with the above example, the process now takes 10
+;; steps, and the offset values after finding the exit are left as 2 3
+;; 2 3 -1.
+
+;; How many steps does it now take to reach the exit?
+
+(defn stranger-instruction-modifier
+  [instruction]
+  (if (> 3 instruction)
+    (inc instruction)
+    (dec instruction)))
