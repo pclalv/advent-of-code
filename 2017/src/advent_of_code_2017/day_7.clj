@@ -208,20 +208,22 @@
         a))))
 
 (defn find-unbalanced [branches]
-  (let [unbalanced-branch (->> branches
-                               (filter #(not (balanced-branch? %)))
-                               (first))
+  (let [unbalanced-branches (->> branches
+                                 (filter #(not (balanced-branch? %))))
+        _ (prn "unbalanced-branches" unbalanced-branches)
+        unbalanced-branch (first unbalanced-branches)
         total-weights (->> unbalanced-branch
                            (map assoc-total-weight)
                            (map :total-weight))
         incorrect-total-weight (find-unlike total-weights)
         correct-total-weight (first (filter #(not= % incorrect-total-weight) total-weights))
         correction (- correct-total-weight incorrect-total-weight)
-        program-with-incorrect-total-weight (->> unbalanced-branch
+        programs-with-incorrect-total-weight (->> unbalanced-branch
                                                  (map assoc-total-weight)
                                                  (filter #(= incorrect-total-weight
-                                                             (:total-weight %)))
-                                                 (first))]
+                                                             (:total-weight %))))
+        program-with-incorrect-total-weight (first programs-with-incorrect-total-weight)
+        _ (prn program-with-incorrect-total-weight)]
     (assoc program-with-incorrect-total-weight
            :correct-weight
            (+ correction
@@ -246,6 +248,10 @@
       ;; (prn leaves)
       ;; (prn)
       (if (balanced-branches? leaves-grouped-by-parent)
+        ;; the problem is here. i'm trying to build the tree from the
+        ;; leaves by tracing back through their parents, but i'm
+        ;; liable to miss things because not all parents at every
+        ;; level have descendants?
         (let [parents-of-leaves (->> programs
                                      (filter (is-parent-of-leaf? leaves))
                                      (map (assoc-weight-children leaves)))]
@@ -260,16 +266,17 @@
 
 (defn assoc-parent [programs]
   (map (fn [program]
-         (assoc program
-                :parent
-                (->> programs
-                     (filter (partial is-parent-of? program))
-                     (first)
-                     (:program-name))))
+         (let [parent-name (->> programs
+                                (filter (partial is-parent-of? program))
+                                (first))
+               _ (if (= "krgdzw" (:program-name program))
+                   (prn "parent-name" parent-name)
+                   nil)]
+           (assoc program :parent parent-name)))
        programs))
 
 (defn balance-tower [file]
   (->> file
        (read-program-file)
-       (assoc-parent)
-       (inspect-branches)))
+       (assoc-parent)))
+       ;(inspect-branches)))
