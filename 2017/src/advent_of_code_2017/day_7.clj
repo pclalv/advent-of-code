@@ -1,4 +1,5 @@
 (ns advent-of-code-2017.day-7)
+(require 'clojure.set)
 
 ;; --- Day 7: Recursive Circus ---
 ;; Wandering further through the circuits of the computer, you come
@@ -143,3 +144,132 @@
 ;; Given that exactly one program is the wrong weight, what would its
 ;; weight need to be to balance the entire tower?
 
+;; okay if i were writing this from scratch, how would i do it?
+;; start with the list of programs
+;; select programs without children
+
+(defn is-parent-of? [child parent]
+  (contains? (:children parent)
+             (:program-name child)))
+
+(defn prune-children [children]
+  (fn [program]
+    (if (not= 0 (:weight-children program))
+      (assoc program :children #{})
+      program)))
+
+(defn assoc-weight-children [leaves]
+  (fn [program]
+    (assoc program
+           :weight-children
+           (->> leaves
+                (filter #(= (:program-name program)
+                            (:parent %)))
+                (map :weight)
+                (apply +)))))
+
+(defn is-not-leaf? [leaves]
+  (let [leaf-names (->> leaves
+                        (map :program-name)
+                        (into #{}))]
+    (fn [program]
+      (not (contains? leaf-names
+                      (:program-name program))))))
+
+(defn assoc-total-weight [leaf]
+  (assoc leaf
+         :total-weight
+         (+ (:weight leaf)
+            (or (:weight-children leaf)
+                0))))
+
+(defn balanced-branch? [branches]
+  (->> branches
+       (map assoc-total-weight)
+       (map :total-weight)
+       (apply =)))
+
+(defn balanced-branches? [branches]
+  (print "unbalanced branches count: ")
+  (prn (->> branches
+                (filter #(not (balanced-branch? %)))
+                (count)))
+  (prn)
+  (every? balanced-branch? branches))
+
+(defn find-unlike [[a b c & rst]]
+  (if (and (= a b c)
+           (not (nil? a)))
+    (recur rst)
+    (if (= a b)
+      c
+      (if (= a c)
+        b
+        a))))
+
+(defn find-unbalanced [branches]
+  (let [unbalanced-branch (->> branches
+                               (filter #(not (balanced-branch? %)))
+                               (first))
+        total-weights (->> unbalanced-branch
+                           (map assoc-total-weight)
+                           (map :total-weight))
+        incorrect-total-weight (find-unlike total-weights)
+        correct-total-weight (first (filter #(not= % incorrect-total-weight) total-weights))
+        correction (- correct-total-weight incorrect-total-weight)
+        program-with-incorrect-total-weight (->> unbalanced-branch
+                                                 (map assoc-total-weight)
+                                                 (filter #(= incorrect-total-weight
+                                                             (:total-weight %)))
+                                                 (first))]
+    (assoc program-with-incorrect-total-weight
+           :correct-weight
+           (+ correction
+              (:weight program-with-incorrect-total-weight)))))
+
+(defn is-parent-of-leaf? [leaves]
+  (let [leaf-parents (->> leaves
+                          (map :parent)
+                          (into #{}))]
+    (fn [program]
+      (contains? leaf-parents (:program-name program)))))
+
+(defn inspect-branches [programs]
+  (print "(count programs): ")
+  (prn (count programs))
+  (loop [leaves (->> programs
+                     (filter #(empty? (:children %))))]
+    (let [leaves-grouped-by-parent (->> leaves
+                                        (group-by :parent)
+                                        (vals))]
+      ;; (print "inspecting: ")
+      ;; (prn leaves)
+      ;; (prn)
+      (if (balanced-branches? leaves-grouped-by-parent)
+        (let [parents-of-leaves (->> programs
+                                     (filter (is-parent-of-leaf? leaves))
+                                     (map (assoc-weight-children leaves)))]
+          (prn "still balanced")
+          (print "(count leaves): ")
+          (prn (count leaves))
+          (print "(count parents-of-leaves): ")
+          (prn (count parents-of-leaves))
+          (recur parents-of-leaves))
+        (do (prn "unbalanced")
+            (find-unbalanced leaves-grouped-by-parent))))))
+
+(defn assoc-parent [programs]
+  (map (fn [program]
+         (assoc program
+                :parent
+                (->> programs
+                     (filter (partial is-parent-of? program))
+                     (first)
+                     (:program-name))))
+       programs))
+
+(defn balance-tower [file]
+  (->> file
+       (read-program-file)
+       (assoc-parent)
+       (inspect-branches)))
