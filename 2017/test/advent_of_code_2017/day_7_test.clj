@@ -9,6 +9,7 @@
 
 (deftest balance-tower-test
   (testing "return value"
-    (is (= 60 (:correct-weight (balance-tower "input-test"))))))
-    ;(is (= "dgoocsw" (find-root-program "input")))))
+    (is (= 60 (:corrected-weight (balance-tower "input-test"))))
+    (is (not (= 1373 (:corrected-weight (balance-tower "input")))))
+    (is (not (= 40965 (:corrected-weight (balance-tower "input")))))))
 

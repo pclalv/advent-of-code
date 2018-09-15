@@ -40,23 +40,23 @@
 ;; cntj (57)
 ;; ...then you would be able to recreate the structure of the towers that looks like this:
 
-;;                      gyxo
-;;                  /
+;;                   gyxo
+;;                 /
 ;;           ugml - ebii
-;;           /      \
-;;           |         jptl
-;;           |
-;;           |         pbga
-;;           /        /
+;;           /     \
+;;          |       jptl
+;;         |
+;;        |         pbga
+;;       /        /
 ;; tknk --- padx - havc
-;;           \        \
-;;           |         qoyq
-;;           |
-;;           |         ktlj
-;;           \      /
-;;           fwft - cntj
-;;                  \
-;;                     xhth
+;;       \        \
+;;        |        qoyq
+;;        |
+;;        |        ktlj
+;;        \      /
+;;         fwft - cntj
+;;               \
+;;                xhth
 
 ;; In this example, tknk is at the bottom of the tower (the bottom
 ;; program), and is holding up ugml, padx, and fwft. Those programs
@@ -144,139 +144,82 @@
 ;; Given that exactly one program is the wrong weight, what would its
 ;; weight need to be to balance the entire tower?
 
-;; okay if i were writing this from scratch, how would i do it?
-;; start with the list of programs
-;; select programs without children
+;; what if we assoc-parent, and then take all of the children who are
+;; not parents; then, beginning with those children we traverse back through the parents and add that child's weight to the 
 
-(defn is-parent-of? [child parent]
-  (contains? (:children parent)
-             (:program-name child)))
+(defn children-of [potential-children]
+  (fn [parent]
+    (let [children-of-parent (:children parent)
+          parent-name (:program-name parent)]
+      (->> potential-children
+           (filter #(contains? children-of-parent
+                               (:program-name %)))
+           (map #(assoc % :parent-name parent-name))))))
 
-(defn prune-children [children]
-  (fn [program]
-    (if (not= 0 (:weight-children program))
-      (assoc program :children #{})
-      program)))
+(defn assoc-weight-of-children [all-programs]
+  (fn [parent]
+    (let [children ((children-of all-programs) parent)
+          children-weight-of-childrens (map (assoc-weight-of-children all-programs) children)
+          weight-of-children (->> children-weight-of-childrens
+                                  (map #(select-keys % '(:weight :weight-of-children)))
+                                  (map vals)
+                                  (flatten)
+                                  (reduce +))]
+      (assoc parent :weight-of-children weight-of-children))))
 
-(defn assoc-weight-children [leaves]
-  (fn [program]
-    (assoc program
-           :weight-children
-           (->> leaves
-                (filter #(= (:program-name program)
-                            (:parent %)))
-                (map :weight)
-                (apply +)))))
+(defn assoc-total-weight [program]
+  (assoc program :total-weight (+ (:weight program)
+                                  (or (:weight-of-children program)
+                                      0))))
 
-(defn is-not-leaf? [leaves]
-  (let [leaf-names (->> leaves
-                        (map :program-name)
-                        (into #{}))]
-    (fn [program]
-      (not (contains? leaf-names
-                      (:program-name program))))))
-
-(defn assoc-total-weight [leaf]
-  (assoc leaf
-         :total-weight
-         (+ (:weight leaf)
-            (or (:weight-children leaf)
-                0))))
-
-(defn balanced-branch? [branches]
-  (->> branches
-       (map assoc-total-weight)
-       (map :total-weight)
-       (apply =)))
-
-(defn balanced-branches? [branches]
-  (print "unbalanced branches count: ")
-  (prn (->> branches
-                (filter #(not (balanced-branch? %)))
-                (count)))
-  (prn)
-  (every? balanced-branch? branches))
-
-(defn find-unlike [[a b c & rst]]
-  (if (and (= a b c)
-           (not (nil? a)))
-    (recur rst)
-    (if (= a b)
-      c
-      (if (= a c)
-        b
-        a))))
-
-(defn find-unbalanced [branches]
-  (let [unbalanced-branches (->> branches
-                                 (filter #(not (balanced-branch? %))))
-        _ (prn "unbalanced-branches" unbalanced-branches)
-        unbalanced-branch (first unbalanced-branches)
-        total-weights (->> unbalanced-branch
-                           (map assoc-total-weight)
-                           (map :total-weight))
-        incorrect-total-weight (find-unlike total-weights)
-        correct-total-weight (first (filter #(not= % incorrect-total-weight) total-weights))
-        correction (- correct-total-weight incorrect-total-weight)
-        programs-with-incorrect-total-weight (->> unbalanced-branch
-                                                 (map assoc-total-weight)
-                                                 (filter #(= incorrect-total-weight
-                                                             (:total-weight %))))
-        program-with-incorrect-total-weight (first programs-with-incorrect-total-weight)
-        _ (prn program-with-incorrect-total-weight)]
-    (assoc program-with-incorrect-total-weight
-           :correct-weight
-           (+ correction
-              (:weight program-with-incorrect-total-weight)))))
-
-(defn is-parent-of-leaf? [leaves]
-  (let [leaf-parents (->> leaves
-                          (map :parent)
-                          (into #{}))]
-    (fn [program]
-      (contains? leaf-parents (:program-name program)))))
-
-(defn inspect-branches [programs]
-  (print "(count programs): ")
-  (prn (count programs))
-  (loop [leaves (->> programs
-                     (filter #(empty? (:children %))))]
-    (let [leaves-grouped-by-parent (->> leaves
-                                        (group-by :parent)
-                                        (vals))]
-      ;; (print "inspecting: ")
-      ;; (prn leaves)
-      ;; (prn)
-      (if (balanced-branches? leaves-grouped-by-parent)
-        ;; the problem is here. i'm trying to build the tree from the
-        ;; leaves by tracing back through their parents, but i'm
-        ;; liable to miss things because not all parents at every
-        ;; level have descendants?
-        (let [parents-of-leaves (->> programs
-                                     (filter (is-parent-of-leaf? leaves))
-                                     (map (assoc-weight-children leaves)))]
-          (prn "still balanced")
-          (print "(count leaves): ")
-          (prn (count leaves))
-          (print "(count parents-of-leaves): ")
-          (prn (count parents-of-leaves))
-          (recur parents-of-leaves))
-        (do (prn "unbalanced")
-            (find-unbalanced leaves-grouped-by-parent))))))
-
-(defn assoc-parent [programs]
-  (map (fn [program]
-         (let [parent-name (->> programs
-                                (filter (partial is-parent-of? program))
+(defn find-unbalanced [programs]
+  (let [total-weight-counts (->> programs
+                                 (group-by :total-weight)
+                                 (map (fn [[total-weight programs]]
+                                        [total-weight (count programs)])))
+        unalike-total-weight (->> total-weight-counts
+                                  (filter (fn [[total-weight count-programs]]
+                                            (= 1 count-programs)))
+                                  (first)
+                                  (first))
+        common-total-weight (->> total-weight-counts
+                                  (filter (fn [[total-weight count-programs]]
+                                            (not (= 1 count-programs))))
+                                  (first)
+                                  (first))
+        correction (- common-total-weight unalike-total-weight)
+        unbalanced-program (->> programs
+                                (filter #(= unalike-total-weight (:total-weight %)))
                                 (first))
-               _ (if (= "krgdzw" (:program-name program))
-                   (prn "parent-name" parent-name)
-                   nil)]
-           (assoc program :parent parent-name)))
-       programs))
+        corrected-weight (->> unbalanced-program
+                              (:weight)
+                              (+ correction))
+        unbalanced-program' (assoc unbalanced-program :corrected-weight corrected-weight)]
+    unbalanced-program'))
+
+(defn balanced? [all-programs root-program]
+  (let [children ((children-of all-programs) root-program)]
+    (if (empty? children)
+      true
+      (let [children-balanced? (every? (partial balanced? all-programs) children)
+            children-total-weights-equal? (->> children
+                                               (map assoc-total-weight)
+                                               (map :total-weight)
+                                               (apply =))]
+        (if (and children-balanced? children-total-weights-equal?)
+          true
+          (find-unbalanced children))))))
 
 (defn balance-tower [file]
-  (->> file
-       (read-program-file)
-       (assoc-parent)))
-       ;(inspect-branches)))
+  (let [programs' (->> file
+                      (read-program-file))
+        assoc-weight-of-children' (assoc-weight-of-children programs')
+        programs (->> programs'
+                      (map assoc-weight-of-children')
+                      (map assoc-total-weight))
+        root-program-name (find-root-program file)
+        root-program (->> programs
+                          (filter #(= root-program-name
+                                      (:program-name %)))
+                          (first))]
+    (balanced? programs root-program)))
