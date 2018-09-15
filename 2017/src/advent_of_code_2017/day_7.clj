@@ -208,7 +208,15 @@
                                                (apply =))]
         (if (and children-balanced? children-total-weights-equal?)
           true
-          (find-unbalanced children))))))
+          false)))))
+
+(defn find-unbalanced' [all-programs parents]
+  (let [children (->> parents
+                      (map (children-of all-programs))
+                      (flatten))]
+    (if (every? (partial balanced? all-programs) parents)
+      (recur all-programs children)
+      (find-unbalanced children))))
 
 (defn balance-tower [file]
   (let [programs' (->> file
@@ -220,6 +228,6 @@
         root-program-name (find-root-program file)
         root-program (->> programs
                           (filter #(= root-program-name
-                                      (:program-name %)))
-                          (first))]
-    (balanced? programs root-program)))
+                                      (:program-name %))))
+        _ (prn root-program)]
+    (find-unbalanced' programs root-program)))
