@@ -80,9 +80,8 @@
     (if children-raw
       {:program-name program_name
        :weight (Integer/parseInt weight)
-       :children (-> children-raw
-                     (clojure.string/split child-delimiter-re)
-                     (set))}
+       :children (->> (clojure.string/split children-raw child-delimiter-re)
+                      (apply sorted-set))}
       {:program-name program_name
        :weight (Integer/parseInt weight)
        :children #{}})))
@@ -215,12 +214,24 @@
                       (map (children-of all-programs))
                       (flatten))]
     (if (every? (partial balanced? all-programs) parents)
-      (recur all-programs children)
-      (find-unbalanced children))))
+      (let [grandparent-names (->> parents
+                                   (map :parent-name)
+                                   (set))
+            grandparents (filter #(contains? grandparent-names
+                                             (:program-name %))
+                                 all-programs)
+            unbalanced-grandparent (->> grandparents
+                                        (filter #(not (balanced? all-programs %)))
+                                        (first))
+            unbalanced-parents (->> parents
+                                    (filter #(= (:program-name unbalanced-grandparent)
+                                                (:parent-name %))))]
+        (find-unbalanced unbalanced-parents))
+      (recur all-programs children))))
 
 (defn balance-tower [file]
   (let [programs' (->> file
-                      (read-program-file))
+                       (read-program-file))
         assoc-weight-of-children' (assoc-weight-of-children programs')
         programs (->> programs'
                       (map assoc-weight-of-children')
@@ -228,6 +239,163 @@
         root-program-name (find-root-program file)
         root-program (->> programs
                           (filter #(= root-program-name
-                                      (:program-name %))))
-        _ (prn root-program)]
+                                      (:program-name %))))]
     (find-unbalanced' programs root-program)))
+
+(def unbalanced-tier '({:program-name "hipirzc", :weight 989, :children #{"geibkdq" "hhzjn" "mpxfrig" "oilsjpr" "vpmtex" "xzjdfbr"}, :weight-of-children 1440, :total-weight 2429, :parent-name "alywuv"}
+                       {:program-name "cczfm", :weight 749, :children #{"pnghx" "putdqt" "sbcyifk" "tusimd" "uxblgk"}, :weight-of-children 1680, :total-weight 2429, :parent-name "alywuv"}
+                       {:program-name "koxzwq", :weight 1633, :children #{"bmwankt" "geuopn" "qmdbgke" "ransdtt"}, :weight-of-children 796, :total-weight 2429, :parent-name "alywuv"}
+                       {:program-name "mlhga", :weight 83, :children #{"enswibe" "oywnenv" "qfitmrm" "qshflsm" "tefmun" "vcgyi"}, :weight-of-children 2346, :total-weight 2429, :parent-name "alywuv"}
+                       {:program-name "awddb", :weight 1643, :children #{"fhyfd" "npsuo" "rrrxeic"}, :weight-of-children 786, :total-weight 2429, :parent-name "alywuv"}
+                       {:program-name "qqktjg", :weight 1859, :children #{"cjxuj" "pbeegf" "pnmkw"}, :weight-of-children 570, :total-weight 2429, :parent-name "alywuv"}
+                       {:program-name "odzzie", :weight 1585, :children #{"aikmwxj" "ixlern" "qmhaa" "yffid"}, :weight-of-children 844, :total-weight 2429, :parent-name "alywuv"}
+                       {:program-name "vjvjnc", :weight 988, :children #{"comyzns" "hoyipx" "qoxsu"}, :weight-of-children 645, :total-weight 1633, :parent-name "mnyng"}
+                       {:program-name "clxlfgu", :weight 86, :children #{"crxuc" "jzjxhyw" "kbjpgv" "lhhlg" "vuldvce" "yciccp" "zwaky"}, :weight-of-children 1547, :total-weight 1633, :parent-name "mnyng"}
+                       {:program-name "plvjk", :weight 1222, :children #{"ksvwjw" "rwaeimg" "uglvj"}, :weight-of-children 411, :total-weight 1633, :parent-name "mnyng"}
+                       {:program-name "ykshd", :weight 464, :children #{"kjljvr" "qufymlj" "simlhnw"}, :weight-of-children 993, :total-weight 1457, :parent-name "rhsztrd"}
+                       {:program-name "xykcof", :weight 1152, :children #{"jfhqmi" "kivlu" "ptmqqpk" "vvkgsba" "zfotzg"}, :weight-of-children 305, :total-weight 1457, :parent-name "rhsztrd"}
+                       {:program-name "etdmt", :weight 35, :children #{"ahuboc" "egcyvrv" "emsacsk" "emvml" "ffyfj" "srjbcye"}, :weight-of-children 1422, :total-weight 1457, :parent-name "rhsztrd"}
+                       {:program-name "psblh", :weight 90, :children #{"kfhcuvf" "uspzk" "wxakaqf"}, :weight-of-children 831, :total-weight 921, :parent-name "nvdoenr"}
+                       {:program-name "coxtcw", :weight 153, :children #{"jdfrbhy" "orulm" "xiksvn"}, :weight-of-children 768, :total-weight 921, :parent-name "nvdoenr"}
+                       {:program-name "foyabk", :weight 390, :children #{"iejyzgu" "iieig" "onwqbz"}, :weight-of-children 531, :total-weight 921, :parent-name "nvdoenr"}
+                       {:program-name "moxiw", :weight 184, :children #{"cqtkhqi" "hughxts" "kvvjhrt" "nfbcs" "oagvuu" "pohqjzd" "qzzhap"}, :weight-of-children 1631, :total-weight 1815, :parent-name "jfdck"}
+                       {:program-name "marnqj", :weight 1283, :children #{"mkrrlbv" "upair" "vqkwlq" "wsrmfr"}, :weight-of-children 540, :total-weight 1823, :parent-name "jfdck"}
+                       {:program-name "sxijke", :weight 987, :children #{"dlzlo" "jlsxjq" "jmazezm"}, :weight-of-children 828, :total-weight 1815, :parent-name "jfdck"}
+                       {:program-name "fnlapoh", :weight 1284, :children #{"foldo" "xlxct" "yxljri"}, :weight-of-children 531, :total-weight 1815, :parent-name "jfdck"}
+                       {:program-name "ojgdow", :weight 15, :children #{"boipij" "bzznyu" "gwgnf" "otmpv" "wdjgdoh" "wiqsy"}, :weight-of-children 1800, :total-weight 1815, :parent-name "jfdck"}
+                       {:program-name "rlsnxvu", :weight 628, :children #{"tfrjlk" "wnvmb" "xdkin"}, :weight-of-children 705, :total-weight 1333, :parent-name "szmnwnx"}
+                       {:program-name "nnoaqvv", :weight 433, :children #{"frklhh" "isixko" "ugeudg"}, :weight-of-children 900, :total-weight 1333, :parent-name "szmnwnx"}
+                       {:program-name "mgayiu", :weight 93, :children #{"bhtwp" "euueza" "ksvdw" "pvnjsr" "txfnjo"}, :weight-of-children 1240, :total-weight 1333, :parent-name "szmnwnx"}
+                       {:program-name "kupsxf", :weight 724, :children #{"klvncy" "ygbecwq" "zxtwo"}, :weight-of-children 609, :total-weight 1333, :parent-name "szmnwnx"}
+                       {:program-name "xmhil", :weight 37, :children #{"gmktbew" "gzrmt" "wloqry"}, :weight-of-children 222, :total-weight 259, :parent-name "fqvvrgx"}
+                       {:program-name "dbzwyez", :weight 195, :children #{"kocwei" "lurly" "mcvws" "xdraxfj"}, :weight-of-children 64, :total-weight 259, :parent-name "fqvvrgx"}
+                       {:program-name "bmhlcgg", :weight 103, :children #{"mpuhqjm" "yoabvhm"}, :weight-of-children 156, :total-weight 259, :parent-name "fqvvrgx"}
+                       {:program-name "krgdzw", :weight 70, :children #{"dfnijm" "fjiemrs" "gvtnin" "jtejd" "oxvcp" "sdllj" "yzvvyb"}, :weight-of-children 2016, :total-weight 2086, :parent-name "arjsnz"}
+                       {:program-name "rwrusdg", :weight 1351, :children #{"abmlupq" "atkstsn" "efsbeb"}, :weight-of-children 735, :total-weight 2086, :parent-name "arjsnz"}
+                       {:program-name "olhbx", :weight 1384, :children #{"ljeztky" "xvpopw" "zlmvme"}, :weight-of-children 702, :total-weight 2086, :parent-name "arjsnz"}
+                       {:program-name "dapjjl", :weight 26, :children #{"aqksi" "dgehtvc" "elxydx" "ghlkk" "pbxzzdi" "rnjqmh"}, :weight-of-children 1554, :total-weight 1580, :parent-name "thuzqqo"}
+                       {:program-name "lvbjtf", :weight 1466, :children #{"exuelye" "kuqnndb"}, :weight-of-children 114, :total-weight 1580, :parent-name "thuzqqo"}
+                       {:program-name "bijhyzu", :weight 368, :children #{"chpjfv" "gkgka" "jdvfkii" "wgnoil"}, :weight-of-children 1212, :total-weight 1580, :parent-name "thuzqqo"}
+                       {:program-name "wnmbn", :weight 13, :children #{"egoezf" "nodgjd" "uicpy" "vrrmn"}, :weight-of-children 1548, :total-weight 1561, :parent-name "bbeclr"}
+                       {:program-name "jipgo", :weight 772, :children #{"klkodi" "qgptpig" "tcclaa"}, :weight-of-children 789, :total-weight 1561, :parent-name "bbeclr"}
+                       {:program-name "zwqgf", :weight 661, :children #{"bxdxjoa" "obbei" "pcqhhy" "xqvmqe"}, :weight-of-children 900, :total-weight 1561, :parent-name "bbeclr"}
+                       {:program-name "sxbee", :weight 32, :children #{"cafxx" "fplzsya" "hweub" "xhymdo" "yftqma" "yhxkh"}, :weight-of-children 1506, :total-weight 1538, :parent-name "fwlspf"}
+                       {:program-name "qigsvd", :weight 218, :children #{"gmpoe" "ixszebq" "wdycxsw" "ymqmr"}, :weight-of-children 1320, :total-weight 1538, :parent-name "fwlspf"}
+                       {:program-name "xxiymn", :weight 110, :children #{"bqfsjz" "diila" "fvtmh" "lgtpuqr" "ryrtqj" "yikzq"}, :weight-of-children 1428, :total-weight 1538, :parent-name "fwlspf"}
+                       {:program-name "qpoodx", :weight 1001, :children #{"adwzzi" "ghebwaz" "gqzczp"}, :weight-of-children 537, :total-weight 1538, :parent-name "fwlspf"}
+                       {:program-name "ubvvr", :weight 288, :children #{"hrpzu" "msjeeks" "ozizlok"}, :weight-of-children 1035, :total-weight 1323, :parent-name "mhfci"}
+                       {:program-name "fqqzx", :weight 669, :children #{"fafvyk" "syrnxgz" "xofjd"}, :weight-of-children 654, :total-weight 1323, :parent-name "mhfci"}
+                       {:program-name "pegoi", :weight 27, :children #{"fwxtdml" "kxpffcy" "qsjwlq" "tfmvb"}, :weight-of-children 1296, :total-weight 1323, :parent-name "mhfci"}
+                       {:program-name "katovn", :weight 559, :children #{"aonrg" "ffizjl" "nbbctar" "ondvq"}, :weight-of-children 1104, :total-weight 1663, :parent-name "bqzfjn"}
+                       {:program-name "jgckfb", :weight 568, :children #{"bcjpkwf" "dvuug" "iwcpvdx" "mzhyo" "ungcoot"}, :weight-of-children 1095, :total-weight 1663, :parent-name "bqzfjn"}
+                       {:program-name "txywrwk", :weight 787, :children #{"indhpfx" "lbflpug" "sxcxmg"}, :weight-of-children 876, :total-weight 1663, :parent-name "bqzfjn"}
+                       {:program-name "fklkig", :weight 1573, :children #{"owhxvku" "ykcmvla" "yrdpurl"}, :weight-of-children 90, :total-weight 1663, :parent-name "bqzfjn"}
+                       {:program-name "vwqquk", :weight 25, :children #{"gvzze" "kndpli" "ouxdvp" "plevjup" "qtbnqo" "sqauq" "ythoww"}, :weight-of-children 1638, :total-weight 1663, :parent-name "bqzfjn"}
+                       {:program-name "tpvcmkz", :weight 1111, :children #{"dtyaj" "xwmjpb" "zqkgqs"}, :weight-of-children 552, :total-weight 1663, :parent-name "bqzfjn"}
+                       {:program-name "xjsyk", :weight 217, :children #{"qylvdk" "zhjzpaa"}, :weight-of-children 40, :total-weight 257, :parent-name "myhfh"}
+                       {:program-name "howpl", :weight 191, :children #{"qlkhbf" "rnqtg"}, :weight-of-children 66, :total-weight 257, :parent-name "myhfh"}
+                       {:program-name "upvrm", :weight 79, :children #{"effjvcu" "uwrqxmj"}, :weight-of-children 178, :total-weight 257, :parent-name "myhfh"}
+                       {:program-name "feuirvn", :weight 64, :children #{"auzdz" "futsmzx" "hlkvwq" "jpvyg" "mibwe" "ufses" "yjlzpv"}, :weight-of-children 2562, :total-weight 2626, :parent-name "fzerj"}
+                       {:program-name "vxbzw", :weight 1698, :children #{"bzjze" "lsxnn" "owprin" "uosltv"}, :weight-of-children 928, :total-weight 2626, :parent-name "fzerj"}
+                       {:program-name "rklic", :weight 832, :children #{"gedajwo" "ilsqjz" "olntlo" "oprsej" "tdqxy" "ylfgaps"}, :weight-of-children 1794, :total-weight 2626, :parent-name "fzerj"}
+                       {:program-name "rzvrn", :weight 1852, :children #{"bkzzc" "ioyiklx" "isbppt"}, :weight-of-children 774, :total-weight 2626, :parent-name "fzerj"}
+                       {:program-name "sqdhc", :weight 79, :children #{"cwoyko" "eqpuq" "mdyhk" "pfyexc" "zscqv" "zspohe"}, :weight-of-children 1956, :total-weight 2035, :parent-name "wustjt"}
+                       {:program-name "quinb", :weight 1927, :children #{"jnojpf" "qtzor"}, :weight-of-children 108, :total-weight 2035, :parent-name "wustjt"}
+                       {:program-name "kcekden", :weight 1504, :children #{"fmvdadz" "pmakzzf" "zgbzqf"}, :weight-of-children 531, :total-weight 2035, :parent-name "wustjt"}
+                       {:program-name "kzeubgd", :weight 270, :children #{"kxouhtb" "wrcpxdx" "wwritm"}, :weight-of-children 735, :total-weight 1005, :parent-name "zwwrwfy"}
+                       {:program-name "corqny", :weight 57, :children #{"cakpt" "crlgf" "gzoyqay" "xkfuz"}, :weight-of-children 948, :total-weight 1005, :parent-name "zwwrwfy"}
+                       {:program-name "sbxkokp", :weight 341, :children #{"gxzgsaa" "sjyso" "snxgfl" "unllgjg"}, :weight-of-children 664, :total-weight 1005, :parent-name "zwwrwfy"}
+                       {:program-name "fquyicp", :weight 113, :children #{"fudpn" "fyptb" "sfbpnnz" "ymrfvp"}, :weight-of-children 892, :total-weight 1005, :parent-name "zwwrwfy"}
+                       {:program-name "zjxspcp", :weight 1244, :children #{"pqjrycz" "sdstw" "tiwxhoa"}, :weight-of-children 411, :total-weight 1655, :parent-name "tgqnyb"}
+                       {:program-name "rtngius", :weight 83, :children #{"boxtod" "iceaj" "igrih" "kqecnz" "tgxuhxp" "wpwlg"}, :weight-of-children 1572, :total-weight 1655, :parent-name "tgqnyb"}
+                       {:program-name "uqgco", :weight 161, :children #{"errrzm" "mvwcdq" "mynuy" "ocmuu" "uvogit" "uwuouhv"}, :weight-of-children 1494, :total-weight 1655, :parent-name "tgqnyb"}
+                       {:program-name "wfuoll", :weight 1715, :children #{"axlitg" "cciwzc" "qpafkjx"}, :weight-of-children 978, :total-weight 2693, :parent-name "whgqhb"}
+                       {:program-name "nqehtaf", :weight 1857, :children #{"iouczne" "krzuab" "mmdrry" "vkmtnn"}, :weight-of-children 836, :total-weight 2693, :parent-name "whgqhb"}
+                       {:program-name "wnshgr", :weight 1978, :children #{"afjqx" "avzxg" "mqgculh" "pzxfm" "ylmixxx"}, :weight-of-children 715, :total-weight 2693, :parent-name "whgqhb"}
+                       {:program-name "cmnjg", :weight 843, :children #{"awpyosw" "hhdth" "kdmuzrx" "ompzpgp" "ovvmrux"}, :weight-of-children 1850, :total-weight 2693, :parent-name "whgqhb"}
+                       {:program-name "olqgu", :weight 53, :children #{"bajtat" "igiqnkc" "ocobkpo" "tobzv" "walei" "zglws"}, :weight-of-children 2640, :total-weight 2693, :parent-name "whgqhb"}
+                       {:program-name "bymyuke", :weight 511, :children #{"dadlbnn" "dlluqgz" "htwkr"}, :weight-of-children 813, :total-weight 1324, :parent-name "ytbnpd"}
+                       {:program-name "rdihhfv", :weight 408, :children #{"dqury" "mskbq" "ozjka" "qrpis"}, :weight-of-children 916, :total-weight 1324, :parent-name "ytbnpd"}
+                       {:program-name "uohmo", :weight 432, :children #{"qzeljtb" "stflbsr" "ustkg" "zznkz"}, :weight-of-children 892, :total-weight 1324, :parent-name "ytbnpd"}
+                       {:program-name "ogpunov", :weight 34, :children #{"eqsrff" "tszcogp" "uwaxli" "wugret" "zdljb" "zgmrmd"}, :weight-of-children 1290, :total-weight 1324, :parent-name "ytbnpd"}
+                       {:program-name "vetgu", :weight 556, :children #{"ssbjh" "wohob" "yierd"}, :weight-of-children 768, :total-weight 1324, :parent-name "ytbnpd"}
+                       {:program-name "ctdey", :weight 628, :children #{"aezwvo" "ruxqapz" "vdpnz"}, :weight-of-children 696, :total-weight 1324, :parent-name "ytbnpd"}))
+
+(def unbalanced-tier-children '({:program-name "hipirzc", :weight 989, :children #{"geibkdq" "hhzjn" "mpxfrig" "oilsjpr" "vpmtex" "xzjdfbr"}, :weight-of-children 1440, :total-weight 2429, :parent-name "alywuv"}
+                                {:program-name "cczfm", :weight 749, :children #{"pnghx" "putdqt" "sbcyifk" "tusimd" "uxblgk"}, :weight-of-children 1680, :total-weight 2429, :parent-name "alywuv"}
+                                {:program-name "koxzwq", :weight 1633, :children #{"bmwankt" "geuopn" "qmdbgke" "ransdtt"}, :weight-of-children 796, :total-weight 2429, :parent-name "alywuv"}
+                                {:program-name "mlhga", :weight 83, :children #{"enswibe" "oywnenv" "qfitmrm" "qshflsm" "tefmun" "vcgyi"}, :weight-of-children 2346, :total-weight 2429, :parent-name "alywuv"}
+                                {:program-name "awddb", :weight 1643, :children #{"fhyfd" "npsuo" "rrrxeic"}, :weight-of-children 786, :total-weight 2429, :parent-name "alywuv"}
+                                {:program-name "qqktjg", :weight 1859, :children #{"cjxuj" "pbeegf" "pnmkw"}, :weight-of-children 570, :total-weight 2429, :parent-name "alywuv"}
+                                {:program-name "odzzie", :weight 1585, :children #{"aikmwxj" "ixlern" "qmhaa" "yffid"}, :weight-of-children 844, :total-weight 2429, :parent-name "alywuv"}
+                                {:program-name "vjvjnc", :weight 988, :children #{"comyzns" "hoyipx" "qoxsu"}, :weight-of-children 645, :total-weight 1633, :parent-name "mnyng"}
+                                {:program-name "clxlfgu", :weight 86, :children #{"crxuc" "jzjxhyw" "kbjpgv" "lhhlg" "vuldvce" "yciccp" "zwaky"}, :weight-of-children 1547, :total-weight 1633, :parent-name "mnyng"}
+                                {:program-name "plvjk", :weight 1222, :children #{"ksvwjw" "rwaeimg" "uglvj"}, :weight-of-children 411, :total-weight 1633, :parent-name "mnyng"}
+                                {:program-name "ykshd", :weight 464, :children #{"kjljvr" "qufymlj" "simlhnw"}, :weight-of-children 993, :total-weight 1457, :parent-name "rhsztrd"}
+                                {:program-name "xykcof", :weight 1152, :children #{"jfhqmi" "kivlu" "ptmqqpk" "vvkgsba" "zfotzg"}, :weight-of-children 305, :total-weight 1457, :parent-name "rhsztrd"}
+                                {:program-name "etdmt", :weight 35, :children #{"ahuboc" "egcyvrv" "emsacsk" "emvml" "ffyfj" "srjbcye"}, :weight-of-children 1422, :total-weight 1457, :parent-name "rhsztrd"}
+                                {:program-name "psblh", :weight 90, :children #{"kfhcuvf" "uspzk" "wxakaqf"}, :weight-of-children 831, :total-weight 921, :parent-name "nvdoenr"}
+                                {:program-name "coxtcw", :weight 153, :children #{"jdfrbhy" "orulm" "xiksvn"}, :weight-of-children 768, :total-weight 921, :parent-name "nvdoenr"}
+                                {:program-name "foyabk", :weight 390, :children #{"iejyzgu" "iieig" "onwqbz"}, :weight-of-children 531, :total-weight 921, :parent-name "nvdoenr"}
+                                {:program-name "moxiw", :weight 184, :children #{"cqtkhqi" "hughxts" "kvvjhrt" "nfbcs" "oagvuu" "pohqjzd" "qzzhap"}, :weight-of-children 1631, :total-weight 1815, :parent-name "jfdck"}
+                                {:program-name "marnqj", :weight 1283, :children #{"mkrrlbv" "upair" "vqkwlq" "wsrmfr"}, :weight-of-children 540, :total-weight 1823, :parent-name "jfdck"}
+                                {:program-name "sxijke", :weight 987, :children #{"dlzlo" "jlsxjq" "jmazezm"}, :weight-of-children 828, :total-weight 1815, :parent-name "jfdck"}
+                                {:program-name "fnlapoh", :weight 1284, :children #{"foldo" "xlxct" "yxljri"}, :weight-of-children 531, :total-weight 1815, :parent-name "jfdck"}
+                                {:program-name "ojgdow", :weight 15, :children #{"boipij" "bzznyu" "gwgnf" "otmpv" "wdjgdoh" "wiqsy"}, :weight-of-children 1800, :total-weight 1815, :parent-name "jfdck"}
+                                {:program-name "rlsnxvu", :weight 628, :children #{"tfrjlk" "wnvmb" "xdkin"}, :weight-of-children 705, :total-weight 1333, :parent-name "szmnwnx"}
+                                {:program-name "nnoaqvv", :weight 433, :children #{"frklhh" "isixko" "ugeudg"}, :weight-of-children 900, :total-weight 1333, :parent-name "szmnwnx"}
+                                {:program-name "mgayiu", :weight 93, :children #{"bhtwp" "euueza" "ksvdw" "pvnjsr" "txfnjo"}, :weight-of-children 1240, :total-weight 1333, :parent-name "szmnwnx"}
+                                {:program-name "kupsxf", :weight 724, :children #{"klvncy" "ygbecwq" "zxtwo"}, :weight-of-children 609, :total-weight 1333, :parent-name "szmnwnx"}
+                                {:program-name "xmhil", :weight 37, :children #{"gmktbew" "gzrmt" "wloqry"}, :weight-of-children 222, :total-weight 259, :parent-name "fqvvrgx"}
+                                {:program-name "dbzwyez", :weight 195, :children #{"kocwei" "lurly" "mcvws" "xdraxfj"}, :weight-of-children 64, :total-weight 259, :parent-name "fqvvrgx"}
+                                {:program-name "bmhlcgg", :weight 103, :children #{"mpuhqjm" "yoabvhm"}, :weight-of-children 156, :total-weight 259, :parent-name "fqvvrgx"}
+                                {:program-name "krgdzw", :weight 70, :children #{"dfnijm" "fjiemrs" "gvtnin" "jtejd" "oxvcp" "sdllj" "yzvvyb"}, :weight-of-children 2016, :total-weight 2086, :parent-name "arjsnz"}
+                                {:program-name "rwrusdg", :weight 1351, :children #{"abmlupq" "atkstsn" "efsbeb"}, :weight-of-children 735, :total-weight 2086, :parent-name "arjsnz"}
+                                {:program-name "olhbx", :weight 1384, :children #{"ljeztky" "xvpopw" "zlmvme"}, :weight-of-children 702, :total-weight 2086, :parent-name "arjsnz"}
+                                {:program-name "dapjjl", :weight 26, :children #{"aqksi" "dgehtvc" "elxydx" "ghlkk" "pbxzzdi" "rnjqmh"}, :weight-of-children 1554, :total-weight 1580, :parent-name "thuzqqo"}
+                                {:program-name "lvbjtf", :weight 1466, :children #{"exuelye" "kuqnndb"}, :weight-of-children 114, :total-weight 1580, :parent-name "thuzqqo"}
+                                {:program-name "bijhyzu", :weight 368, :children #{"chpjfv" "gkgka" "jdvfkii" "wgnoil"}, :weight-of-children 1212, :total-weight 1580, :parent-name "thuzqqo"}
+                                {:program-name "wnmbn", :weight 13, :children #{"egoezf" "nodgjd" "uicpy" "vrrmn"}, :weight-of-children 1548, :total-weight 1561, :parent-name "bbeclr"}
+                                {:program-name "jipgo", :weight 772, :children #{"klkodi" "qgptpig" "tcclaa"}, :weight-of-children 789, :total-weight 1561, :parent-name "bbeclr"}
+                                {:program-name "zwqgf", :weight 661, :children #{"bxdxjoa" "obbei" "pcqhhy" "xqvmqe"}, :weight-of-children 900, :total-weight 1561, :parent-name "bbeclr"}
+                                {:program-name "sxbee", :weight 32, :children #{"cafxx" "fplzsya" "hweub" "xhymdo" "yftqma" "yhxkh"}, :weight-of-children 1506, :total-weight 1538, :parent-name "fwlspf"}
+                                {:program-name "qigsvd", :weight 218, :children #{"gmpoe" "ixszebq" "wdycxsw" "ymqmr"}, :weight-of-children 1320, :total-weight 1538, :parent-name "fwlspf"}
+                                {:program-name "xxiymn", :weight 110, :children #{"bqfsjz" "diila" "fvtmh" "lgtpuqr" "ryrtqj" "yikzq"}, :weight-of-children 1428, :total-weight 1538, :parent-name "fwlspf"}
+                                {:program-name "qpoodx", :weight 1001, :children #{"adwzzi" "ghebwaz" "gqzczp"}, :weight-of-children 537, :total-weight 1538, :parent-name "fwlspf"}
+                                {:program-name "ubvvr", :weight 288, :children #{"hrpzu" "msjeeks" "ozizlok"}, :weight-of-children 1035, :total-weight 1323, :parent-name "mhfci"}
+                                {:program-name "fqqzx", :weight 669, :children #{"fafvyk" "syrnxgz" "xofjd"}, :weight-of-children 654, :total-weight 1323, :parent-name "mhfci"}
+                                {:program-name "pegoi", :weight 27, :children #{"fwxtdml" "kxpffcy" "qsjwlq" "tfmvb"}, :weight-of-children 1296, :total-weight 1323, :parent-name "mhfci"}
+                                {:program-name "katovn", :weight 559, :children #{"aonrg" "ffizjl" "nbbctar" "ondvq"}, :weight-of-children 1104, :total-weight 1663, :parent-name "bqzfjn"}
+                                {:program-name "jgckfb", :weight 568, :children #{"bcjpkwf" "dvuug" "iwcpvdx" "mzhyo" "ungcoot"}, :weight-of-children 1095, :total-weight 1663, :parent-name "bqzfjn"}
+                                {:program-name "txywrwk", :weight 787, :children #{"indhpfx" "lbflpug" "sxcxmg"}, :weight-of-children 876, :total-weight 1663, :parent-name "bqzfjn"}
+                                {:program-name "fklkig", :weight 1573, :children #{"owhxvku" "ykcmvla" "yrdpurl"}, :weight-of-children 90, :total-weight 1663, :parent-name "bqzfjn"}
+                                {:program-name "vwqquk", :weight 25, :children #{"gvzze" "kndpli" "ouxdvp" "plevjup" "qtbnqo" "sqauq" "ythoww"}, :weight-of-children 1638, :total-weight 1663, :parent-name "bqzfjn"}
+                                {:program-name "tpvcmkz", :weight 1111, :children #{"dtyaj" "xwmjpb" "zqkgqs"}, :weight-of-children 552, :total-weight 1663, :parent-name "bqzfjn"}
+                                {:program-name "xjsyk", :weight 217, :children #{"qylvdk" "zhjzpaa"}, :weight-of-children 40, :total-weight 257, :parent-name "myhfh"}
+                                {:program-name "howpl", :weight 191, :children #{"qlkhbf" "rnqtg"}, :weight-of-children 66, :total-weight 257, :parent-name "myhfh"}
+                                {:program-name "upvrm", :weight 79, :children #{"effjvcu" "uwrqxmj"}, :weight-of-children 178, :total-weight 257, :parent-name "myhfh"}
+                                {:program-name "feuirvn", :weight 64, :children #{"auzdz" "futsmzx" "hlkvwq" "jpvyg" "mibwe" "ufses" "yjlzpv"}, :weight-of-children 2562, :total-weight 2626, :parent-name "fzerj"}
+                                {:program-name "vxbzw", :weight 1698, :children #{"bzjze" "lsxnn" "owprin" "uosltv"}, :weight-of-children 928, :total-weight 2626, :parent-name "fzerj"}
+                                {:program-name "rklic", :weight 832, :children #{"gedajwo" "ilsqjz" "olntlo" "oprsej" "tdqxy" "ylfgaps"}, :weight-of-children 1794, :total-weight 2626, :parent-name "fzerj"}
+                                {:program-name "rzvrn", :weight 1852, :children #{"bkzzc" "ioyiklx" "isbppt"}, :weight-of-children 774, :total-weight 2626, :parent-name "fzerj"}
+                                {:program-name "sqdhc", :weight 79, :children #{"cwoyko" "eqpuq" "mdyhk" "pfyexc" "zscqv" "zspohe"}, :weight-of-children 1956, :total-weight 2035, :parent-name "wustjt"}
+                                {:program-name "quinb", :weight 1927, :children #{"jnojpf" "qtzor"}, :weight-of-children 108, :total-weight 2035, :parent-name "wustjt"}
+                                {:program-name "kcekden", :weight 1504, :children #{"fmvdadz" "pmakzzf" "zgbzqf"}, :weight-of-children 531, :total-weight 2035, :parent-name "wustjt"}
+                                {:program-name "kzeubgd", :weight 270, :children #{"kxouhtb" "wrcpxdx" "wwritm"}, :weight-of-children 735, :total-weight 1005, :parent-name "zwwrwfy"}
+                                {:program-name "corqny", :weight 57, :children #{"cakpt" "crlgf" "gzoyqay" "xkfuz"}, :weight-of-children 948, :total-weight 1005, :parent-name "zwwrwfy"}
+                                {:program-name "sbxkokp", :weight 341, :children #{"gxzgsaa" "sjyso" "snxgfl" "unllgjg"}, :weight-of-children 664, :total-weight 1005, :parent-name "zwwrwfy"}
+                                {:program-name "fquyicp", :weight 113, :children #{"fudpn" "fyptb" "sfbpnnz" "ymrfvp"}, :weight-of-children 892, :total-weight 1005, :parent-name "zwwrwfy"}
+                                {:program-name "zjxspcp", :weight 1244, :children #{"pqjrycz" "sdstw" "tiwxhoa"}, :weight-of-children 411, :total-weight 1655, :parent-name "tgqnyb"}
+                                {:program-name "rtngius", :weight 83, :children #{"boxtod" "iceaj" "igrih" "kqecnz" "tgxuhxp" "wpwlg"}, :weight-of-children 1572, :total-weight 1655, :parent-name "tgqnyb"}
+                                {:program-name "uqgco", :weight 161, :children #{"errrzm" "mvwcdq" "mynuy" "ocmuu" "uvogit" "uwuouhv"}, :weight-of-children 1494, :total-weight 1655, :parent-name "tgqnyb"}
+                                {:program-name "wfuoll", :weight 1715, :children #{"axlitg" "cciwzc" "qpafkjx"}, :weight-of-children 978, :total-weight 2693, :parent-name "whgqhb"}
+                                {:program-name "nqehtaf", :weight 1857, :children #{"iouczne" "krzuab" "mmdrry" "vkmtnn"}, :weight-of-children 836, :total-weight 2693, :parent-name "whgqhb"}
+                                {:program-name "wnshgr", :weight 1978, :children #{"afjqx" "avzxg" "mqgculh" "pzxfm" "ylmixxx"}, :weight-of-children 715, :total-weight 2693, :parent-name "whgqhb"}
+                                {:program-name "cmnjg", :weight 843, :children #{"awpyosw" "hhdth" "kdmuzrx" "ompzpgp" "ovvmrux"}, :weight-of-children 1850, :total-weight 2693, :parent-name "whgqhb"}
+                                {:program-name "olqgu", :weight 53, :children #{"bajtat" "igiqnkc" "ocobkpo" "tobzv" "walei" "zglws"}, :weight-of-children 2640, :total-weight 2693, :parent-name "whgqhb"}
+                                {:program-name "bymyuke", :weight 511, :children #{"dadlbnn" "dlluqgz" "htwkr"}, :weight-of-children 813, :total-weight 1324, :parent-name "ytbnpd"}
+                                {:program-name "rdihhfv", :weight 408, :children #{"dqury" "mskbq" "ozjka" "qrpis"}, :weight-of-children 916, :total-weight 1324, :parent-name "ytbnpd"}
+                                {:program-name "uohmo", :weight 432, :children #{"qzeljtb" "stflbsr" "ustkg" "zznkz"}, :weight-of-children 892, :total-weight 1324, :parent-name "ytbnpd"}
+                                {:program-name "ogpunov", :weight 34, :children #{"eqsrff" "tszcogp" "uwaxli" "wugret" "zdljb" "zgmrmd"}, :weight-of-children 1290, :total-weight 1324, :parent-name "ytbnpd"}
+                                {:program-name "vetgu", :weight 556, :children #{"ssbjh" "wohob" "yierd"}, :weight-of-children 768, :total-weight 1324, :parent-name "ytbnpd"}
+                                {:program-name "ctdey", :weight 628, :children #{"aezwvo" "ruxqapz" "vdpnz"}, :weight-of-children 696, :total-weight 1324, :parent-name "ytbnpd"}))
