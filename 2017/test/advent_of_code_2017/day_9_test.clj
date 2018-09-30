@@ -2,18 +2,6 @@
   (:require [clojure.test :refer :all]
             [advent-of-code-2017.day-9 :refer :all]))
 
-(deftest count-groups-test
-  (testing "return value"
-    (is (= 1 (count-groups "{}")))
-    (is (= 3 (count-groups "{{{}}}")))
-    (is (= 3 (count-groups "{{},{}}")))
-    (is (= 6 (count-groups "{{{},{},{{}}}}")))
-    (is (= 1 (count-groups "{<{},{},{{}}>}")))
-    (is (= 1 (count-groups "{<a>,<a>,<a>,<a>}")))
-    (is (= 5 (count-groups "{{<a>},{<a>},{<a>},{<a>}}")))
-    (is (= 2 (count-groups "{{<!>},{<!>},{<!>},{<a>}}")))))
-
-
 (deftest score-test
   (testing "return value"
     (is (= 1 (score "{}")))
@@ -24,3 +12,7 @@
     (is (= 9 (score "{{<ab>},{<ab>},{<ab>},{<ab>}}")))
     (is (= 9 (score "{{<!!>},{<!!>},{<!!>},{<!!>}}")))
     (is (= 3 (score "{{<a!>},{<a!>},{<a!>},{<ab>}}")))))
+
+(deftest count-garbage-test
+  (testing "return value"
+    (is (= 5601 (count-garbage-filename "input")))))

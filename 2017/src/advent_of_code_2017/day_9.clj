@@ -40,6 +40,7 @@
 ;; <!!>, because the second ! is canceled, allowing the > to terminate the garbage.
 ;; <!!!>>, because the second ! and the first > are canceled.
 ;; <{o"i!a,<{i<a>, which ends at the first >.
+
 ;; Here are some examples of whole streams and the number of groups they contain:
 
 ;; {}, 1 group.
@@ -67,13 +68,100 @@
 
 ;; What is the total score for all groups in your input?
 
-;; [> to satisfy parinfer's desire to have things balanced]
-
 (defn count-groups [group]
   nil)
 
-(defn score [stream-file]
-  (with-open [stream (->> stream-file
-                          (str "resources/day-9/")
-                          (clojure.java.io/input-stream))]
-    nil))
+(defn clean-cancellations
+  ([string]
+   (clean-cancellations (clojure.string/replace string #"!." "") string))
+  ([string prev-string]
+   (if (= string prev-string)
+     string
+     (recur (clean-cancellations string) string))))
+
+(comment
+  (defn aggressively-clean-garbage
+    ([string]
+     (aggressively-clean-garbage (clojure.string/replace string #"\<.*\>" "") string))
+    ([string prev-string]
+     (if (= string prev-string)
+       string
+       (recur (aggressively-clean-garbage string) string)))))
+
+(defn clean-garbage
+  ([string]
+   (clean-garbage (clojure.string/replace string #"\<.*?\>" "") string))
+  ([string prev-string]
+   (if (= string prev-string)
+     string
+     (recur (clean-garbage string) string))))
+
+(defn clean [string]
+  (->> string
+       clean-cancellations
+       clean-garbage))
+
+(defn string-to-seq [string]
+  (-> string
+      (clean)
+      (clojure.string/replace #"\{" "(")
+      (clojure.string/replace #"\}" ")")
+      (read-string)))
+
+(defn score-seq
+  ([seq]
+   (score-seq 1 seq))
+  ([current-level seq]
+   (if (empty? seq)
+     current-level
+     (+ current-level
+        (->> seq
+             (map (partial score-seq (inc current-level)))
+             (reduce +))))))
+
+(defn score [string]
+  (->> string
+       (string-to-seq)
+       (score-seq)))
+
+(defn score-file [filename]
+  (->> filename
+       (str "resources/day-9/")
+       (slurp)
+       (score)))
+
+;; --- Part Two ---
+;; Now, you're ready to remove the garbage.
+
+;; To prove you've removed it, you need to count all of the characters
+;; within the garbage. The leading and trailing < and > don't count,
+;; nor do any canceled characters or the ! doing the canceling.
+
+;; <>, 0 characters.
+;; <random characters>, 17 characters.
+;; <<<<>, 3 characters.
+;; <{!>}>, 2 characters.
+;; <!!>, 0 characters.
+;; <!!!>>, 0 characters.
+;; <{o"i!a,<{i<a>, 10 characters.
+
+;; How many non-canceled characters are within the garbage in your puzzle input?
+
+(defn extract-garbage [string]
+  (->> string
+       (re-seq #"\<.*?\>")
+       (map #(clojure.string/replace % #"^\<" ""))
+       (map #(clojure.string/replace % #"\>$" ""))))
+
+(defn count-garbage [string]
+  (->> string
+       (clean-cancellations)
+       (extract-garbage)
+       (map count)
+       (reduce +)))
+
+(defn count-garbage-filename [filename]
+  (->> filename
+       (str "resources/day-9/")
+       (slurp)
+       (count-garbage)))
