@@ -8,3 +8,7 @@
     (is (= [] (reduce-steps [:ne :ne :sw :sw])))
     (is (= [:se :se] (reduce-steps [:ne :ne :s :s])))
     (is (= [:s :s :sw] (reduce-steps [:s :s :sw])))))
+
+(deftest part1-test
+  (testing "return value"
+    (is (not= 8223 (part1)))))
