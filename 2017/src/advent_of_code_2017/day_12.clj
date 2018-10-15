@@ -1,4 +1,5 @@
 (ns advent-of-code-2017.day-12)
+(require 'clojure.set)
 
 ;; --- Day 12: Digital Plumber ---
 
@@ -65,29 +66,29 @@
          (into {}))))
 
 (defn connections-to-program [program-pipes program]
-  (loop [programs-that-can-talk-to-current-programs #{program}
-         current-programs #{program}]
-    (let [current-program-pipes (->> current-programs
-                                     (mapcat #(get program-pipes %))
-                                     (into #{}))
-          current-program-pipes' (clojure.set/difference current-program-pipes programs-that-can-talk-to-current-programs)
-          programs-that-can-talk-to-current-programs' (clojure.set/union programs-that-can-talk-to-current-programs
-                                                                         current-program-pipes')
-          all-programs (->> program-pipes
-                            keys
-                            set)
-          programs-that-cant-talk-to-current-programs' (clojure.set/difference all-programs
-                                                                               programs-that-can-talk-to-current-programs')
-          possibly-missed-programs (doall (->> programs-that-cant-talk-to-current-programs'
-                                               (filter (fn [program]
-                                                         (some (set (get program-pipes program))
-                                                               current-programs)))))
-          current-program-pipes'' (concat current-program-pipes'
-                                          possibly-missed-programs)]
-      (if (empty? current-program-pipes'')
-        (doall (sort programs-that-can-talk-to-current-programs))
-        (recur programs-that-can-talk-to-current-programs'
-               current-program-pipes'')))))
+  (let [all-programs (->> program-pipes
+                          keys
+                          set)]
+    (loop [programs-that-can-talk-to-current-programs #{program}
+           current-programs #{program}]
+      (let [current-program-pipes (->> current-programs
+                                       (mapcat #(get program-pipes %))
+                                       (into #{}))
+            current-program-pipes' (clojure.set/difference current-program-pipes programs-that-can-talk-to-current-programs)
+            programs-that-can-talk-to-current-programs' (clojure.set/union programs-that-can-talk-to-current-programs
+                                                                           current-program-pipes')
+            programs-that-cant-talk-to-current-programs' (clojure.set/difference all-programs
+                                                                                 programs-that-can-talk-to-current-programs')
+            possibly-missed-programs (doall (->> programs-that-cant-talk-to-current-programs'
+                                                 (filter (fn [program]
+                                                           (some (set (get program-pipes program))
+                                                                 current-programs)))))
+            current-program-pipes'' (concat current-program-pipes'
+                                            possibly-missed-programs)]
+        (if (empty? current-program-pipes'')
+          (doall (sort programs-that-can-talk-to-current-programs))
+          (recur programs-that-can-talk-to-current-programs'
+                 current-program-pipes''))))))
 
 
 (defn connections-to-zero [program-file]

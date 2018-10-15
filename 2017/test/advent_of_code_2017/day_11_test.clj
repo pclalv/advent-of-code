@@ -11,4 +11,4 @@
 
 (deftest part1-test
   (testing "return value"
-    (is (not= 8223 (part1)))))
+    (is (not= 8223 part1))))
