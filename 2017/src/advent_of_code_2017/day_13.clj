@@ -197,3 +197,102 @@
 
 ;; Given the details of the firewall you've recorded, if you leave
 ;; immediately, what is the severity of your whole trip?
+
+(def field-delimiter #": ")
+
+(defn read-firewall-file [filename]
+  (let [raw-contents (->> filename
+                          (str "resources/day-13/")
+                          slurp
+                          clojure.string/trim-newline)
+        lines (clojure.string/split raw-contents #"\n")]
+    (->> lines
+         (map #(clojure.string/split % field-delimiter))
+         (map (fn [[depth range]]
+                {:depth (Integer/parseInt depth)
+                 :range (Integer/parseInt range)
+                 :scanner-position 0
+                 :direction inc}))
+         (sort-by :layer))))
+
+(defn inc-scanner-position [{range :range scanner-position :scanner-position direction :direction :as layer}]
+  (let [new-scanner-position (direction scanner-position)
+        has-hit-top (and (= direction inc) (= (dec range) new-scanner-position))
+        has-hit-bottom (and (= direction dec) (= 0 new-scanner-position))
+        new-direction (cond
+                        has-hit-top dec
+                        has-hit-bottom inc
+                        :else direction)]
+    (-> layer
+        (assoc :scanner-position new-scanner-position)
+        (assoc :direction new-direction))))
+
+(defn tick [firewall]
+  (map inc-scanner-position firewall))
+
+(defn caught? [idx {depth :depth scanner-position :scanner-position}]
+  (and (= idx depth)
+       (= 0 scanner-position)))
+
+(defn severity [filename]
+  (let [firewall (read-firewall-file filename)
+        num-layers (->> firewall
+                        last
+                        :depth)
+        layers-at-all-half-picoseconds (->> firewall
+                                            (iterate tick)
+                                            (take (+ 2 num-layers))
+                                            ;; how to account for the half-tick?
+                                            (mapcat #(repeat 2 %))
+                                            (drop 1)
+                                            (drop-last 1)
+                                            ;; these keys just clutter the output
+                                            (map (partial map #(dissoc % :direction))))
+        layers-at-first-half-picoseconds (->> layers-at-all-half-picoseconds
+                                              (partition 2)
+                                              (map #(take 1 %))
+                                              (map flatten))
+        layers-caught-in (->> layers-at-first-half-picoseconds
+                              (map-indexed (fn [index layers]
+                                             (filter #(caught? index %) layers)))
+                              flatten)]
+    (->> layers-caught-in
+         (map (fn [{depth :depth range :range}] (* depth range)))
+         (reduce +))))
+
+(comment
+  ;; first half-picoseconds
+  (({:depth 0 :scanner-position 0} ;; caught
+    {:depth 1 :scanner-position 0}
+    {:depth 4 :scanner-position 0}
+    {:depth 6 :scanner-position 0})
+
+   ({:depth 0 :scanner-position 1}
+    {:depth 1 :scanner-position 1}
+    {:depth 4 :scanner-position 1}
+    {:depth 6 :scanner-position 1})
+
+   ({:depth 0 :scanner-position 2}
+    {:depth 1 :scanner-position 0}
+    {:depth 4 :scanner-position 2}
+    {:depth 6 :scanner-position 2})
+
+   ({:depth 0 :scanner-position 1}
+    {:depth 1 :scanner-position 1}
+    {:depth 4 :scanner-position 3}
+    {:depth 6 :scanner-position 3})
+
+   ({:depth 0 :scanner-position 0}
+    {:depth 1 :scanner-position 0}
+    {:depth 4 :scanner-position 2}
+    {:depth 6 :scanner-position 2})
+
+   ({:depth 0 :scanner-position 1}
+    {:depth 1 :scanner-position 1}
+    {:depth 4 :scanner-position 1}
+    {:depth 6 :scanner-position 1})
+
+   ({:depth 0 :scanner-position 2}
+    {:depth 1 :scanner-position 0}
+    {:depth 4 :scanner-position 0}
+    {:depth 6 :scanner-position 0}))) ;; caught
