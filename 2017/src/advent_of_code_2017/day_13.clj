@@ -234,31 +234,44 @@
   (and (= idx depth)
        (= 0 scanner-position)))
 
-(defn severity [filename]
-  (let [firewall (read-firewall-file filename)
-        num-layers (->> firewall
-                        last
-                        :depth)
-        layers-at-all-half-picoseconds (->> firewall
-                                            (iterate tick)
-                                            (take (+ 2 num-layers))
-                                            ;; how to account for the half-tick?
-                                            (mapcat #(repeat 2 %))
-                                            (drop 1)
-                                            (drop-last 1)
-                                            ;; these keys just clutter the output
-                                            (map (partial map #(dissoc % :direction))))
-        layers-at-first-half-picoseconds (->> layers-at-all-half-picoseconds
-                                              (partition 2)
-                                              (map #(take 1 %))
-                                              (map flatten))
-        layers-caught-in (->> layers-at-first-half-picoseconds
-                              (map-indexed (fn [index layers]
-                                             (filter #(caught? index %) layers)))
-                              flatten)]
-    (->> layers-caught-in
-         (map (fn [{depth :depth range :range}] (* depth range)))
-         (reduce +))))
+(defn severity
+  ([filename]
+   (severity filename 0))
+  ([filename offset]
+   (let [firewall (read-firewall-file filename)
+         num-layers (->> firewall
+                         last
+                         :depth)
+         layers-at-all-half-picoseconds (->> firewall
+                                             (iterate tick)
+                                             (take (+ 2 offset num-layers))
+                                             (mapcat #(repeat 2 %))
+                                             (drop (+ 1 (* 2 offset)))
+                                             (drop-last 1)
+                                             ;; this key just clutter the output
+                                             (map (partial map #(dissoc % :direction))))
+         layers-at-first-half-picoseconds (->> layers-at-all-half-picoseconds
+                                               (partition 2)
+                                               (map #(take 1 %))
+                                               (map flatten))
+         layers-caught-in (->> layers-at-first-half-picoseconds
+                               (map-indexed (fn [index layers]
+                                              (filter #(caught? index %) layers)))
+                               flatten)]
+     {:caught (not (empty? layers-caught-in))
+      :score (->> layers-caught-in
+                  (map (fn [{depth :depth range :range}] (* depth range)))
+                  (reduce +))})))
+
+     ;; (try {:caught (not (empty? layers-caught-in))
+     ;;       :score (->> layers-caught-in
+     ;;                   (map (fn [{depth :depth range :range}] (* depth range)))
+     ;;                   (reduce +))}
+;;      (catch StackOverflowError e
+     ;;        (do
+     ;;          (prn offset)
+     ;;          (prn (count layers-caught-in))
+     ;;          (prn (last layers-caught-in))))))))
 
 (comment
   ;; first half-picoseconds
@@ -421,3 +434,46 @@
 
 ;; What is the fewest number of picoseconds that you need to delay the
 ;; packet to pass through the firewall without being caught?
+
+(defn seconds-to-delay-to-not-get-caught [filename]
+  (let [non-negative-integers (iterate inc 1)]
+    (->> non-negative-integers
+         (filter #(not (:caught (severity filename %))))
+         (first))))
+         ;(first))))
+
+(comment
+  '(({:depth 0, :range 3, :scanner-position 2}
+     {:depth 1, :range 2, :scanner-position 0}
+     {:depth 4, :range 4, :scanner-position 2}
+     {:depth 6, :range 4, :scanner-position 2})
+
+    ({:depth 0, :range 3, :scanner-position 1}
+     {:depth 1, :range 2, :scanner-position 1}
+     {:depth 4, :range 4, :scanner-position 1}
+     {:depth 6, :range 4, :scanner-position 1})
+
+    ({:depth 0, :range 3, :scanner-position 0}
+     {:depth 1, :range 2, :scanner-position 0}
+     {:depth 4, :range 4, :scanner-position 0}
+     {:depth 6, :range 4, :scanner-position 0})
+
+    ({:depth 0, :range 3, :scanner-position 1}
+     {:depth 1, :range 2, :scanner-position 1}
+     {:depth 4, :range 4, :scanner-position 1}
+     {:depth 6, :range 4, :scanner-position 1})
+
+    ({:depth 0, :range 3, :scanner-position 2}
+     {:depth 1, :range 2, :scanner-position 0}
+     {:depth 4, :range 4, :scanner-position 2}
+     {:depth 6, :range 4, :scanner-position 2})
+
+    ({:depth 0, :range 3, :scanner-position 1}
+     {:depth 1, :range 2, :scanner-position 1}
+     {:depth 4, :range 4, :scanner-position 3}
+     {:depth 6, :range 4, :scanner-position 3})
+
+    ({:depth 0, :range 3, :scanner-position 0}
+     {:depth 1, :range 2, :scanner-position 0}
+     {:depth 4, :range 4, :scanner-position 2}
+     {:depth 6, :range 4, :scanner-position 2})))
