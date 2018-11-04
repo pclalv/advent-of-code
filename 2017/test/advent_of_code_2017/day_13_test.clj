@@ -9,4 +9,5 @@
 
 (deftest seconds-to-delay-to-not-get-caught-test
   (testing "return value"
-    (is (= 10 (seconds-to-delay-to-not-get-caught "input-test")))))
+    (is (= 10 (seconds-to-delay-to-not-get-caught "input-test")))
+    (is (= 3913186 (seconds-to-delay-to-not-get-caught "input")))))

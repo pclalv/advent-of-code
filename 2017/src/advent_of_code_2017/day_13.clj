@@ -234,23 +234,27 @@
   (and (= idx depth)
        (= 0 scanner-position)))
 
+(defn layers-caught-in [firewall-layers-at-each-tick]
+  (->> firewall-layers-at-each-tick
+       (map-indexed (fn [tick layers]
+                      (filter #(caught? tick %) layers)))
+       (flatten)))
+
 (defn severity
   ([filename]
    (severity filename 0))
   ([filename offset]
-   (let [firewall (read-firewall-file filename)
-         num-layers (->> firewall
+   (let [firewall-layers (read-firewall-file filename)
+         num-layers (->> firewall-layers
                          last
                          :depth)
-         layers-caught-in (->> firewall
-                               (iterate tick)
-                               (drop offset)
-                               (take (inc num-layers))
-                               (map-indexed (fn [index layers]
-                                              (filter #(caught? index %) layers)))
-                               flatten)]
-     {:caught (not (empty? layers-caught-in))
-      :score (->> layers-caught-in
+         firewall-layers-at-each-tick (doall (->> firewall-layers
+                                                  (iterate tick)
+                                                  (drop offset)
+                                                  (take (inc num-layers))))
+         firewall-layers-caught-in (layers-caught-in firewall-layers-at-each-tick)]
+     {:caught (not (empty? firewall-layers-caught-in))
+      :score (->> firewall-layers-caught-in
                   (map (fn [{depth :depth range :range}] (* depth range)))
                   (reduce +))})))
 
@@ -416,12 +420,28 @@
 ;; What is the fewest number of picoseconds that you need to delay the
 ;; packet to pass through the firewall without being caught?
 
-(defn seconds-to-delay-to-not-get-caught [filename]
+(defn old-seconds-to-delay-to-not-get-caught [filename]
   (let [non-negative-integers (iterate inc 1)]
     (->> non-negative-integers
          (filter #(not (:caught (severity filename %))))
          (first))))
-         ;(first))))
+
+(defn seconds-to-delay-to-not-get-caught [filename]
+  (let [firewall-layers (read-firewall-file filename)
+        num-layers (->> firewall-layers
+                        last
+                        :depth)
+        firewall-layers-at-offets (->> firewall-layers
+                                       (iterate tick)
+                                       (partition (inc num-layers) 1)
+                                       (map-indexed #(list %1 %2)))]
+    (->> firewall-layers-at-offets
+         (filter (fn [[_offset firewall]]
+                   (->> firewall
+                        (layers-caught-in)
+                        (empty?))))
+         (first)
+         (first))))
 
 (comment
   '(({:depth 0, :range 3, :scanner-position 2}
