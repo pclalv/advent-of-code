@@ -244,6 +244,7 @@
                          :depth)
          layers-caught-in (->> firewall
                                (iterate tick)
+                               (drop offset)
                                (take (inc num-layers))
                                (map-indexed (fn [index layers]
                                               (filter #(caught? index %) layers)))
