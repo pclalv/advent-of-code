@@ -242,19 +242,9 @@
          num-layers (->> firewall
                          last
                          :depth)
-         layers-at-all-half-picoseconds (->> firewall
-                                             (iterate tick)
-                                             (take (+ 2 offset num-layers))
-                                             (mapcat #(repeat 2 %))
-                                             (drop (+ 1 (* 2 offset)))
-                                             (drop-last 1)
-                                             ;; this key just clutter the output
-                                             (map (partial map #(dissoc % :direction))))
-         layers-at-first-half-picoseconds (->> layers-at-all-half-picoseconds
-                                               (partition 2)
-                                               (map #(take 1 %))
-                                               (map flatten))
-         layers-caught-in (->> layers-at-first-half-picoseconds
+         layers-caught-in (->> firewall
+                               (iterate tick)
+                               (take (inc num-layers))
                                (map-indexed (fn [index layers]
                                               (filter #(caught? index %) layers)))
                                flatten)]
