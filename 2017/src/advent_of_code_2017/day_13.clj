@@ -254,16 +254,6 @@
                   (map (fn [{depth :depth range :range}] (* depth range)))
                   (reduce +))})))
 
-     ;; (try {:caught (not (empty? layers-caught-in))
-     ;;       :score (->> layers-caught-in
-     ;;                   (map (fn [{depth :depth range :range}] (* depth range)))
-     ;;                   (reduce +))}
-;;      (catch StackOverflowError e
-     ;;        (do
-     ;;          (prn offset)
-     ;;          (prn (count layers-caught-in))
-     ;;          (prn (last layers-caught-in))))))))
-
 (comment
   ;; first half-picoseconds
   (({:depth 0 :scanner-position 0} ;; caught
