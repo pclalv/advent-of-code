@@ -1,6 +1,13 @@
 (ns advent-of-code-2018.util)
 
-(comment (defn input-file-lines [input-file]
-           (-> (str "resources/day_" day "/" input-file)
-               (slurp)
-               (clojure.string/split #"\n"))))
+(defn abs [n] (max n (- n)))
+
+(defn input-file-contents [input-file]
+  (->> input-file
+       (str "resources/")
+       (slurp)))
+
+(defn input-file-lines [input-file]
+  (-> input-file
+      (input-file-contents)
+      (clojure.string/split #"\n")))

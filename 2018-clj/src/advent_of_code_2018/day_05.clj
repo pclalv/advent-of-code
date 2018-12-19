@@ -1,5 +1,7 @@
 (ns advent-of-code-2018.day-05)
 
+(require '[advent-of-code-2018.util :refer (abs)])
+
 ;; --- Day 5: Alchemical Reduction ---
 
 ;; You've managed to sneak in to the prototype suit manufacturing
@@ -47,18 +49,81 @@
   (let [char-literals (-> (str "resources/day_" day "/" input-file)
                           (slurp)
                           (vec))]
-    (->> char-literals
-         (map int)
-         (into []))))
+    (pmap int char-literals)))
+
+(defn capital-and-lower-case? [char1 char2]
+  (and (not (nil? char1))
+       (not (nil? char2))
+       (= 32 (abs (- char1 char2)))))
+
+(defn cancel-adjacents-old [chars]
+  (loop [cancelled-chars []
+         [char1 char2 char3 & remaining-chars] chars]
+    (let [cancelled-chars' (cond (capital-and-lower-case? char1 char2)
+                                 (conj cancelled-chars char3)
+                                 (capital-and-lower-case? char2 char3)
+                                 (conj cancelled-chars char1)
+                                 :else
+                                 (->> [char1 char2 char3]
+                                      (remove nil?)
+                                      (apply conj cancelled-chars)))]
+      (if (empty? remaining-chars)
+        cancelled-chars'
+        (recur cancelled-chars' remaining-chars)))))
+
+(defn cancel-adjacent [chars]
+  (->> chars
+       (partition 2 2 '(nil))
+       (remove (partial apply capital-and-lower-case?))
+       (flatten)
+       (remove nil?)))
+
+(defn cancel-adjacents [chars]
+  (let [[head & tail :as even-cancelled] (cancel-adjacent chars)
+        odd-cancelled (cancel-adjacent tail)]
+    (conj odd-cancelled head)))
+
+(defn cancel-and-count [chars]
+  (loop [current-chars chars
+         previous-chars []]
+    (if (= (count current-chars) (count previous-chars))
+      (count current-chars)
+      (recur (cancel-adjacents current-chars)
+             current-chars))))
 
 (defn part1 [input-file]
-  (loop [[char1 char2 char3 & remaining-chars :as chars] (input-file-chars input-file)
-         previous-chars nil]
-    (if (= chars previous-chars)
-      chars
-      (cond (= 32 (abs (- char1 char2)))
-            (recur (conj remaining-chars char3) chars)
-            (= 32 (abs (- char2 char3)))
-            (recur (conj remaining-chars char1) chars)
-            :else
-            (recur )))))
+  (let [chars (input-file-chars input-file)]
+    (cancel-and-count chars)))
+
+;; --- Part Two ---
+
+;; Time to improve the polymer.
+
+;; One of the unit types is causing problems; it's preventing the
+;; polymer from collapsing as much as it should. Your goal is to
+;; figure out which unit type is causing the most problems, remove all
+;; instances of it (regardless of polarity), fully react the remaining
+;; polymer, and measure its length.
+
+;; For example, again using the polymer dabAcCaCBAcCcaDA from above:
+
+;; Removing all A/a units produces dbcCCBcCcD. Fully reacting this polymer produces dbCBcD, which has length 6.
+;; Removing all B/b units produces daAcCaCAcCcaDA. Fully reacting this polymer produces daCAcaDA, which has length 8.
+;; Removing all C/c units produces dabAaBAaDA. Fully reacting this polymer produces daDA, which has length 4.
+;; Removing all D/d units produces abAcCaCBAcCcaA. Fully reacting this polymer produces abCBAc, which has length 6.
+
+;; In this example, removing all C/c units was best, producing the answer 4.
+
+;; What is the length of the shortest polymer you can produce by
+;; removing all units of exactly one type and fully reacting the
+;; result?
+
+(defn part2 [input-file]
+  (let [pairs-to-remove (map set (map vector
+                                      (range (int \A) (int \Z))
+                                      (range (int \a) (int \z))))
+        chars (input-file-chars input-file)]
+    (->> pairs-to-remove
+         (pmap #(remove % chars))
+         (pmap cancel-and-count)
+         (min))))
