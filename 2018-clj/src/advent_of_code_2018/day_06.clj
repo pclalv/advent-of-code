@@ -87,7 +87,7 @@
 ;; including the coordinate's location itself). Therefore, in this
 ;; example, the size of the largest area is 17.
 
-(defn populate-grid [destinations grid]
+(defn populate-grid-with-closest-destination [destinations grid]
   (reduce (fn [grid' [destination-id destination]]
             (map-indexed (fn [row-idx row]
                            (map-indexed (fn [col-idx current-coord-data]
@@ -140,11 +140,11 @@
         grid-dim (->> destination-coords (flatten) (apply max) (inc))
         grid (->> (grid-of grid-dim {:distance Float/POSITIVE_INFINITY
                                      :destination-ids []})
-                  (populate-grid destinations)
+                  (populate-grid-with-closest-destination destinations)
                   (map-rows :destination-ids)
-                  (map-rows (if (= 1 (count %))
-                              (first %)
-                              \.)))
+                  (map-rows #(if (= 1 (count %))
+                               (first %)
+                               \.)))
         destination-ids (keys destinations)]
     (->> destination-ids
          (remove (edge? grid))
@@ -200,3 +200,29 @@
 ;; What is the size of the region containing all locations which have
 ;; a total distance to all given coordinates of less than 10000?
 
+(defn distances-to [destinations coord]
+  {:coord coord
+   :destination-distances (map (fn [[destination-id destination-coord]]
+                                 {:destination-id destination-id
+                                  :distance (manhattan-distance coord destination-coord)})
+                               destinations)})
+
+(defn part2 [input-file]
+  (let [max-closeness (cond (= "input" input-file) 10000
+                            (= "input-test" input-file) 32
+                            :else nil)
+        destination-coords (input-file-coords input-file)
+        destinations (zipmap (iterate inc 0) destination-coords)
+        grid-dim (->> destination-coords (flatten) (apply max) (inc))
+        grid (for [x (range grid-dim)
+                   y (range grid-dim)]
+               [x y])]
+    (->> grid
+         (map #(distances-to destinations %))
+         (map (fn [{coord :coord destination-distances :destination-distances}]
+                {:coord coord
+                 :closeness (->> destination-distances
+                                 (map :distance)
+                                 (reduce +))}))
+         (filter #(> max-closeness (:closeness %)))
+         (count))))
