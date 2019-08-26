@@ -4,4 +4,5 @@
 
 (deftest count-occupied-test
   (testing "return value"
-    (is (= 8108 (count-occupied input-test)))))
+    (is (= 8108 (count-occupied input-test)))
+    (is (= 8230 (count-occupied input)))))

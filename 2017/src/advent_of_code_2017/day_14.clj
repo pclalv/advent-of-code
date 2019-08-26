@@ -1,5 +1,6 @@
 (ns advent-of-code-2017.day-14)
 (require '[clojure.pprint :refer (cl-format)])
+(require '[advent-of-code-2017.day-10 :refer (hash-string)])
 
 ;; --- Day 14: Disk Defragmentation ---
 
@@ -111,9 +112,116 @@
 
 ;; How many regions are present given your key string?
 
-(defn count-regions [string]
-  (let [grid (memory-grid string)
-        coords (for [x (range 128)
-                     y (range 128)
-                     :let [coords [x y]]]
-                 coords)]))
+;; isn't capable of merging regions that make contact "too late" for the algorithm to detect
+(defn count-regions
+  ([string]
+   (let [grid (doall (->> string
+                          memory-grid
+                          (map #(clojure.string/replace % #"0" "."))
+                          (map #(clojure.string/replace % #"1" "R"))
+                          (map #(into [] %))
+                          (into [])))
+         grid-dim (count (first grid))
+         addresses (for [row (range grid-dim)
+                         col (range grid-dim)
+                         :let [address [row col]]]
+                     (vec address))]
+     (count-regions grid 0 addresses)))
+  ([grid region-id [[row col] & addresses]]
+   (let [address [row col]]
+     (if (and (nil? row) (nil? col))
+       {:grid grid
+        :region-count region-id}
+       (let [curr (get-in grid address)]
+         (if (= curr \.)
+           (recur grid region-id addresses)
+           (let [right-addr [row (inc col)]
+                 right (get-in grid right-addr)
+                 curr' (cond (and (int? right) (int? curr)) (min right curr)
+                             (int? curr) curr
+                             (int? right) right
+                             :else region-id)
+                 next-region-id (if (not= region-id curr')
+                                  region-id
+                                  (inc region-id))
+                 right' (if (= \. right)
+                          \.
+                          curr')
+                 down-addr [(inc row) col]
+                 down (get-in grid down-addr)
+                 down' (if (= \. down)
+                         \.
+                         curr')
+                 grid' (assoc-in grid address curr')
+                 grid'' (if (> 128 (inc col))
+                          (assoc-in grid' right-addr right')
+                          grid')
+                 grid''' (if (> 128 (inc row))
+                           (assoc-in grid'' down-addr down')
+                           grid'')
+                 ;; _ (when (and (= col 3) (= row 8))
+                 ;;     (do (println)
+                 ;;         (println)
+                 ;;         (println "address curr curr'" address curr curr')
+                 ;;         (println "right-addr right'" right-addr right right')
+                 ;;         (println "down-addr down'" down-addr down down')
+                 ;;         (println)
+                 ;;         (println)
+                 ;;         (throw (Exception. "bail"))))
+                 grid'''' (if (and (not= curr \R) (not= curr' \R) (not= curr curr'))
+                            (let [new-curr (min curr curr')
+                                  old-curr (max curr curr')]
+                              (doall (->> grid'''
+                                          (map #(doall (replace {old-curr new-curr} %)))
+                                          (into []))))
+                            grid''')
+                 grid''''' (if (and (> 128 (inc col)) (not= right \R) (not= right' \R) (not= right right'))
+                             (let [new-right (min right right')
+                                   old-right (max right right')]
+                               (doall (->> grid''''
+                                           (map #(doall (replace {old-right new-right} %)))
+                                           (into []))))
+                             grid'''')
+                 grid'''''' (if (and (> 128 (inc row)) (not= down \R) (not= down' \R) (not= down down'))
+                              (let [new-down (min down down')
+                                    old-down (max down down')]
+                                (doall (->> grid'''''
+                                            (map #(doall (replace {old-down new-down} %)))
+                                            (into []))))
+                              grid''''')]
+             (recur grid'''''' next-region-id addresses))))))))
+
+(comment (let [dim 15
+               (map #(take dim %) 
+                    (take dim (:grid (count-regions input-test))))])
+         ;; this is looking good, but 88 needs to be merged into 4.
+         ;; seems to be because the slot below 88 is 88, and then 48. and THEN 4.
+
+         ;; if we're changing the integer value of down or right, then
+         ;; we need to go back and replace down and right, just like
+         ;; we do with curr and curr'.
+         (( 0  0 \.  1 \.  2 \. \.  3  3  3  3 \.  4  4)
+          (\.  0 \.  1 \.  2 \.  3  3  3  3 \.  4 \.  4)
+          (\. \. \. \. 38 \. 39 \.  3  3 \.  4  4  4  4)
+          (47 \.  4 \. 38 38 \. 49 \. \.  4  4  4  4 \.)
+          (\.  4  4 \. 38 \. \. \. \. \.  4 \.  4  4  4)
+          ( 4  4 \. \. 38 \. \.  4  4  4  4  4 \.  4 \.)
+          (\.  4 \. \. \.  4 \. \.  4  4 \. \. \. \. \.)
+          ( 4  4 \. 88 \.  4  4 \. \.  4  4  4 \. \. 89)
+          ( 4  4  4  4 \.  4  4  4  4  4  4 \. \. 89 89)
+          ( 4  4 \.  4 \.  4  4  4  4 \. \. \. \. \. \.)
+          (\. \. \.  4 \. \. \. \.  4 \. \R \R \. \. \R)
+          (\.  4  4  4  4  4  4  4  4  4  4  4 \. \. \.)
+          (\. \. \.  4 \.  4  4 \. \. \.  4 \. \. \R \R)
+          (\. \R \. \.  4  4 \. \.  4  4  4 \. \. \R \R)
+          (\R \. \. \.  4 \. \. \. \.  4  4 \. \R \R \.)))
+
+(comment
+  ;; part2 solution
+  (->> input
+       (count-regions)
+       (:grid)
+       (flatten)
+       (filter int?)
+       (into #{})
+       (count)))
