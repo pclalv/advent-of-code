@@ -83,22 +83,26 @@
                                            initial-value))
 
 (defn next-16-bits [generator]
-  (->> generator
-       (take 1)
-       first
-       (cl-format nil "~32,'0',B")
-       (drop 16)
-       (apply str)))
+  (bit-shift-left (->> generator
+                       (take 1)
+                       first)
+                  ;; 48 because that's as far as we can go without
+                  ;; wrapping; java.lang.Long seems to be int64
+                  48))
 
 (defn compare-generators [{:keys [a-initial b-initial]} max-comparisons]
+  ;; start with a call to rest so that we don't count the initial
+  ;; value
   (loop [a (rest (generator-a a-initial))
          b (rest (generator-b b-initial))
          tally 0
          comparisons 0]
     (if (> max-comparisons comparisons)
       (let [this-a (next-16-bits a)
-            this-b (next-16-bits b) (if (= this-a this-b)
-                                      (inc tally)
-                                      tally)]
+            this-b (next-16-bits b)
+            next-tally (if (= this-a this-b)                         
+                         (inc tally)
+                         (do ;; (println "miss")
+                           tally))]
         (recur (rest a) (rest b) next-tally (inc comparisons)))
       tally)))
