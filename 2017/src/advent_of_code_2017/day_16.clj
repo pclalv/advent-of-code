@@ -39,25 +39,41 @@
 (defn partner? [s]
   (str/starts-with? s "p"))
 
-(defn dance-move-spin [{:keys [distance]} progs]
-  (let [len (count progs)]
-    (->> progs
-         (cycle)
-         (drop (math/abs (- len distance)))
-         (take len)
-         (vec))))
+(defn dance-move-spin [{:keys [distance]}
+                       {:keys [progs-vec progs-map]}]
+  (let [len (count progs-vec)
+        progs-vec' (->> progs-vec
+                        (cycle)
+                        (drop (math/abs (- len distance)))
+                        (take len)
+                        (vec))
+        progs-map' (zipmap progs-vec' (range len))]
+    {:progs-vec progs-vec'
+     :progs-map progs-map'}))
 
-(defn dance-move-exchange [{:keys [idx1 idx2]} progs]
-  (let [prog-a (nth progs idx1)
-        prog-b (nth progs idx2)]
-    (-> progs
-        (assoc idx1 prog-b)
-        (assoc idx2 prog-a))))
+(defn dance-move-exchange [{:keys [idx1 idx2]}
+                           {:keys [progs-vec progs-map]}]
+  (let [prog-a (nth progs-vec idx1)
+        prog-b (nth progs-vec idx2)
+        progs-vec' (-> progs-vec
+                       (assoc idx1 prog-b)
+                       (assoc idx2 prog-a))
+        progs-map' (zipmap progs-vec' (range (count progs-vec')))]
+    {:progs-vec progs-vec'
+     :progs-map progs-map'}))
 
-(defn dance-move-partner [{:keys [prog-a prog-b]} progs]
-  (let [idx1 (.indexOf progs prog-a)
-        idx2 (.indexOf progs prog-b)]
-    (dance-move-exchange {:idx1 idx1 :idx2 idx2} progs)))
+(defn dance-move-partner [{:keys [prog-a prog-b]}
+                          {:keys [progs-vec progs-map]}]
+  (let [idx1 (progs-map prog-a)
+        idx2 (progs-map prog-b)
+        progs-map' (-> progs-map
+                       (assoc prog-a idx2)
+                       (assoc prog-b idx1))
+        progs-vec' (-> progs-vec
+                       (assoc idx1 prog-b)
+                       (assoc idx2 prog-a))]
+    {:progs-vec progs-vec'
+     :progs-map progs-map'}))
 
 (defn parse-dance-move-spin [s]
   (let [[_ distance] (re-matches #"s(\d+)" s)]
@@ -79,16 +95,21 @@
 (defn parse-dance-move [s]
   (cond (spin? s) (parse-dance-move-spin s)
         (exchange? s) (parse-dance-move-exchange s)
-        (partner? s) (parse-dance-move-partner s)))
+        (partner? s) (parse-dance-move-partner s)
+        :else (throw (Exception. (str "bad dance move: " s)))))
 
-(def programs (char-range \a \p))
+(def programs (let [progs (vec (char-range \a \p))]
+                {:progs-vec progs
+                 :progs-map (zipmap progs (range (count progs)))}))
 (def input (map parse-dance-move (-> "resources/day-16/input"
                                      slurp
                                      clojure.string/trim-newline
                                      (str/split #","))))
-               
 
-(def test-programs (char-range \a \e))
+
+(def test-programs (let [progs (vec (char-range \a \e))]
+                     {:progs-vec progs
+                      :progs-map (zipmap progs (range (count progs)))}))
 (def test-input (map parse-dance-move ["s1" "x3/4" "pe/b"]))
 
 (comment
@@ -96,13 +117,16 @@
   (->> test-input
        (reduce (fn [progs dance-move]
                  (dance-move progs))
-               (vec (char-range \a \e))))
+               test-programs)
+       (:progs-vec)
+       (apply str))
 
   ;; real deal
   (->> input
        (reduce (fn [progs dance-move]
                  (dance-move progs))
-               (vec (char-range \a \p)))
+               programs)
+       (:progs-vec)
        (apply str)))
 
 ;; --- Part Two ---
