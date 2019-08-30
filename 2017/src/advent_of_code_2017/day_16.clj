@@ -61,20 +61,20 @@
 
 (defn parse-dance-move-spin [s]
   (let [[_ distance] (re-matches #"s(\d+)" s)]
-    [dance-move-spin
-     {:distance (Integer/parseInt distance)}]))
+    (partial dance-move-spin
+             {:distance (Integer/parseInt distance)})))
 
 (defn parse-dance-move-exchange [s]
   (let [[_ idx1 idx2] (re-matches #"x(\d+)/(\d+)" s)]
-    [dance-move-exchange
-     {:idx1 (Integer/parseInt idx1)
-      :idx2 (Integer/parseInt idx2)}]))
+    (partial dance-move-exchange
+             {:idx1 (Integer/parseInt idx1)
+              :idx2 (Integer/parseInt idx2)})))
 
 (defn parse-dance-move-partner [s]
   (let [[_ prog-a prog-b] (re-matches #"p(\w)/(\w)" s)]
-    [dance-move-partner
-     {:prog-a (first (char-array prog-a))
-      :prog-b (first (char-array prog-b))}]))
+    (partial dance-move-partner
+             {:prog-a (first (char-array prog-a))
+              :prog-b (first (char-array prog-b))})))
 
 (defn parse-dance-move [s]
   (cond (spin? s) (parse-dance-move-spin s)
@@ -95,16 +95,13 @@
   ;; test data
   (->> test-input
        (reduce (fn [progs dance-move]
-                 (let [cmd (seq (conj dance-move progs))
-                       _ (println cmd)]
-                   (eval cmd)))
+                 (dance-move progs))
                (vec (char-range \a \e))))
 
   ;; real deal
   (->> input
        (reduce (fn [progs dance-move]
-                 (let [cmd (seq (conj dance-move progs))]
-                   (eval cmd)))
+                 (dance-move progs))
                (vec (char-range \a \p)))
        (apply str)))
 
