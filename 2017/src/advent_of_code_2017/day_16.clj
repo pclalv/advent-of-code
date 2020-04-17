@@ -146,3 +146,21 @@
 ;; pe/b, swapping programs e and b: ceadb.
 ;; In what order are the programs standing after their billion dances?
 
+(comment
+  (->> test-input
+       (cycle)
+       (take (* 1000000000 (count test-input)))
+       (reduce (fn [progs dance-move]
+                 (dance-move progs))
+               test-programs)
+       (:progs-vec)
+       (apply str))
+
+  (->> input
+       (cycle)
+       (take (* 1000000000 (count input)))
+       (reduce (fn [progs dance-move]
+                 (dance-move progs))
+               programs)
+       (:progs-vec)
+       (apply str)))
